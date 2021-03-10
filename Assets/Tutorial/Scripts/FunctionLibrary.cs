@@ -6,7 +6,7 @@ public static class FunctionLibrary
 
     public delegate Vector3 Function(float u, float v, float t);
 
-    public enum FunctionName { Wave, MultiWave, Ripple, Sphere, Torus }
+    public enum FunctionName { Sphere, Wave, MultiWave, Ripple, Torus }
 
     static int functionLength = 5;
 
