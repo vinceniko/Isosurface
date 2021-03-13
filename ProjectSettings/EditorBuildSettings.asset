@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Isosurface/Scenes/main.unity
+    guid: 52a99da0ab3fe4566811aa95d5886795
   m_configObjects: {}

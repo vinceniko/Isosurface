@@ -5,17 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>English</string>
     <key>CFBundleExecutable</key>
-    <string>catlike-coding_tutorial</string>
+    <string>isosurface</string>
     <key>CFBundleGetInfoString</key>
     <string>Unity Player version 2019.4.21f1 (b76dac84db26). (c) 2021 Unity Technologies ApS. All rights reserved.</string>
     <key>CFBundleIconFile</key>
     <string>PlayerIcon.icns</string>
     <key>CFBundleIdentifier</key>
-    <string>com.DefaultCompany.catlike-codingtutorial</string>
+    <string>com.DefaultCompany.isosurface</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>catlike-coding_tutorial</string>
+    <string>isosurface</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
