@@ -11,13 +11,17 @@ float3 _ViewDir;
 float _PointBrightness;
 float _PointSize;
 
-float3 oneDToThreeD(int i) 
+int3 oneDToThreeD(uint i) 
 {
-	int zDirection = i % _Resolution;
-	int yDirection = (i / _Resolution) % _Resolution;
-	int xDirection = i / (_Resolution * _Resolution);
+	uint zDirection = i % _Resolution;
+	uint yDirection = (i / _Resolution) % _Resolution;
+	uint xDirection = i / (_Resolution * _Resolution);
 
 	return float3(xDirection, yDirection, zDirection);
+}
+
+int threeDToOneD(int3 pos) {
+	return pos.x + _Resolution * (pos.y + _Resolution * pos.z);
 }
 
 float4x4 axis_matrix(float3 right, float3 up, float3 forward)
@@ -41,17 +45,20 @@ float4x4 look_at_matrix(float3 at, float3 eye, float3 up)
     return axis_matrix(xaxis, yaxis, zaxis);
 }
 
+#define BASE_POINTSIZE 4.0
+#define BASE_BRIGHTNESS 1.0
+
 void ConfigureProcedural () {
 	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
 		unity_ObjectToWorld = 0.0;
 		float4 pos = float4((oneDToThreeD(unity_InstanceID) - _Resolution * 0.5) * _Step + _Step * 0.5, 1.0);
 		unity_ObjectToWorld._m03_m13_m23_m33 = mul(_GridToWorld, pos);
 		// unity_ObjectToWorld._m03_m13_m23_m33 = float4((oneDToThreeD(unity_InstanceID) - _Resolution * 0.5) * _Step + _Step * 0.5, 1.0);
-		unity_ObjectToWorld._m00_m11_m22 = _Step / (4.0 - _PointSize);
+		unity_ObjectToWorld._m00_m11_m22 = _Step / (BASE_POINTSIZE - _PointSize);
 
-		unity_ObjectToWorld = mul(unity_ObjectToWorld, look_at_matrix(-_ViewDir * 1000, pos.xyz, float3(0.0, 1.0, 0.0)));
+		unity_ObjectToWorld = mul(unity_ObjectToWorld, look_at_matrix(-_ViewDir * 1000 /* high enough constant to look towards view */, pos.xyz, float3(0.0, 1.0, 0.0)));
 
-		_Color = float3(-_IsoVals[unity_InstanceID] / (1.0 - _PointBrightness), 0.0, 0.0);
+		_Color = float3(-_IsoVals[unity_InstanceID] / (BASE_BRIGHTNESS - _PointBrightness), 0.0, 0.0);
 		// _Color = float3(_IsoVals[unity_InstanceID] < 0.0 ? 1.0 : 0.0, 0.0, 0.0);
 		
 		// float3 threeD = mul(_ShapeToWorld, float4(oneDToThreeD(unity_InstanceID), 1.0)).xyz;

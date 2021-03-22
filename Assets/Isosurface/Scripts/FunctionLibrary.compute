@@ -4,18 +4,17 @@
 #pragma kernel PyramidKernel
 #pragma kernel OctahedronKernel
 
-// #pragma kernel WaveKernel
-// #pragma kernel MultiWaveKernel
-// #pragma kernel RippleKernel
-
 RWStructuredBuffer<float> _IsoVals;
 uint _Resolution;
 float _Step, _Time;
 float4x4 _GridToWorld;
 float4x4 _ShapeToWorld[2];
 
-// TODO: remove
-float3 GetUV(uint3 id)
+int threeDToOneD(int3 pos) {
+	return pos.x + _Resolution * (pos.y + _Resolution * pos.z);
+}
+
+float3 GetPos(uint3 id)
 {
     return mul(_GridToWorld, float4((id.zyx - _Resolution * 0.5) * _Step + _Step * 0.5, 1.0)).xyz;
     // return mul(_GridToWorld, float4(id.zyx * _Step, 1.0)).xyz;
@@ -25,56 +24,10 @@ void SetIsoVal(uint3 id, float val)
 {
 	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
 	if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) 
-    {
-		_IsoVals[id.x + _Resolution * (id.y + _Resolution * id.z)] = val;
+  {
+		_IsoVals[threeDToOneD(id)] = val;
 	}
 }
-
-#define PI 3.14159265358979323846
-
-// float3 Wave (float u, float v, float t) 
-// {
-// 	float3 p;
-// 	p.x = u;
-// 	p.y = sin(PI * (u + v + t));
-// 	p.z = v;
-// 	return p;
-// }
-
-// float3 MultiWave (float u, float v, float t) {
-// 	float3 p;
-// 	p.x = u;
-// 	p.y = sin(PI * (u + 0.5 * t));
-// 	p.y += 0.5 * sin(2.0 * PI * (v + t));
-// 	p.y += sin(PI * (u + v + 0.25 * t));
-// 	p.y *= 1.0 / 2.5;
-// 	p.z = v;
-// 	return p;
-// }
-
-// float3 Ripple (float u, float v, float t) {
-// 	float d = sqrt(u * u + v * v);
-// 	float3 p;
-// 	p.x = u;
-// 	p.y = sin(PI * (4.0 * d - t));
-// 	p.y /= 1.0 + 10.0 * d;
-// 	p.z = v;
-// 	return p;
-// }
-
-// float3 Torus (float u, float v, float t) 
-// {
-// 	float r1 = 0.7 + 0.1 * sin(PI * (6.0 * u + 0.5 * t));
-// 	float r2 = 0.15 + 0.05 * sin(PI * (8.0 * u + 4.0 * v + 2.0 * t));
-// 	float s = r2 * cos(PI * v) + r1;
-// 	float3 p;
-// 	p.x = s * sin(PI * u);
-// 	p.y = r2 * sin(PI * v);
-// 	p.z = s * cos(PI * u);
-// 	return p;
-// }
-
-// float _ShapeSize;
 
 float Sphere(float3 p, float s)
 {
@@ -86,7 +39,6 @@ float Torus(float3 p, float s)
 	float2 q = float2(length(p.xz)-s * 2.5,p.y);
   	return length(q)-s;
 }
-
 
 float Pyramid(float3 p, float h)
 {
@@ -129,8 +81,8 @@ float opUnion( float d1, float d2 ) { return min(d1,d2); }
 	[numthreads(4, 4, 4)] \
 	void function##Kernel (uint3 id: SV_DispatchThreadID) \
     { \
-		float3 uv = GetUV(id); \
-		SetIsoVal(id, function(mul(_ShapeToWorld[0], float4(uv, 1.0)).xyz, 0.5)); \
+		float3 pos = GetPos(id); \
+		SetIsoVal(id, function(mul(_ShapeToWorld[0], float4(pos, 1.0)).xyz, 0.5)); \
 	}
 
 // SetIsoVal(id, opUnion(function(mul(_ShapeToWorld[0], float4(uv, 1.0)).xyz, 0.5), function(mul(_ShapeToWorld[1], float4(uv, 1.0)).xyz, 0.5)));
@@ -142,7 +94,3 @@ KERNEL_FUNCTION(Sphere)
 KERNEL_FUNCTION(Torus)
 KERNEL_FUNCTION(Pyramid)
 KERNEL_FUNCTION(Octahedron)
-
-// KERNEL_FUNCTION(Wave)
-// KERNEL_FUNCTION(MultiWave)
-// KERNEL_FUNCTION(Ripple)

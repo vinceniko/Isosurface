@@ -24,6 +24,7 @@ namespace Isosurface
         [SerializeField]
         SDFShape[] shape;
 
+        const int minResolution = 1;
         const int maxResolution = 50;
         // [SerializeField]
         // public int shapeSize = 1;
@@ -31,8 +32,8 @@ namespace Isosurface
         [SerializeField]
         public int size = 100;
 
-        [SerializeField, Range(5, maxResolution)]
-        int resolution = 5;
+        [SerializeField, Range(minResolution, maxResolution)]
+        int resolution = minResolution;
 
         [SerializeField, Range(0, 3.5f)]
         float pointSize = 1.5f;
@@ -48,7 +49,7 @@ namespace Isosurface
         [SerializeField]
         Mesh mesh = default;
 
-        // [SerializeField, Range(0.0f, 0.99f)]
+        [SerializeField, Range(0.0f, 0.99f)]
         float pointBrightness = 0.99f;
 
         [SerializeField]
@@ -109,7 +110,7 @@ namespace Isosurface
         }
 
         void UpdateFunctionOnGPU () {
-            float step = size / resolution;
+            float step = size / (float)resolution;
             computeShader.SetInt(resolutionId, resolution);
             computeShader.SetFloat(stepId, step);
 
