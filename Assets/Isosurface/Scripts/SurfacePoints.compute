@@ -10,6 +10,8 @@ struct Edge {
 [numthreads(4, 4, 4)]
 void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
     float3 pos = id; // cube rooted at pos
+    
+    if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) SetSurfacePoint(pos, float3(_Resolution+1, _Resolution+1, _Resolution+1));
 
     Edge cube_edges[12];
 
@@ -35,25 +37,25 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
         Edge dim_edges[4];
         // vertical, horizontal
         for (int j = 0; j < 2; j++) {
-            dim_edges[j].start = pos + dim_offsets[other_dims[j]] * _Step;
+            dim_edges[j].start = pos + dim_offsets[other_dims[j]];
         }
         // root
         dim_edges[2].start = pos;
         // diagonal
         float3 diag_offset = float3(0.0, 0.0, 0.0);
         for (int j = 0; j < 2; j++) {
-            diag_offset += (pos + dim_offsets[other_dims[j]] * _Step);
+            diag_offset += dim_offsets[other_dims[j]];
         }
-        dim_edges[3].start = diag_offset;
+        dim_edges[3].start = pos + diag_offset;
         
         // edge ends
         for (int j = 0; j < 4; j++) {
-            dim_edges[j].end = dim_edges[j].start + main_dim_offset * _Step;
+            dim_edges[j].end = dim_edges[j].start + main_dim_offset;
         }
 
         // add to cube_edges
         for (int j = 0; j < 4; j++) {
-            cube_edges[i * 4 + j] = dim_edges[j];
+            cube_edges[i * 4 + j] = dim_edges[0];
         }
     }
 
@@ -78,8 +80,7 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
         float3 surface_point = float3(0.0, 0.0, 0.0);
         int count = 0;
         for (int i = 0; i < num_edges_intersected; i++) {
-            float3 vert = edge_intersections[i];
-            surface_point += vert;
+            surface_point += edge_intersections[i];
             count++;
         }
         surface_point /= float3(count, count, count);

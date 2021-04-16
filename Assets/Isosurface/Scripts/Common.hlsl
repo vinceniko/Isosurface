@@ -41,7 +41,9 @@ void SetIsoVal(uint3 id, float val)
 void SetSurfacePoint(uint3 id, float3 val) 
 {
 	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
-	if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution && id.x >= 0 && id.y >= 0 && id.z >= 0) 
+	if (id.x < _Resolution-1 && id.y < _Resolution-1 && id.z < _Resolution-1 && 
+    id.x >= 0 && id.y >= 0 && id.z >= 0 &&
+    val.x < _Resolution && val.y < _Resolution && val.z < _Resolution) 
     {
 		_SurfacePoints[threeDToOneD(id)] = float4(val, 1.0);
 	} else {

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Isosurface 
 {
@@ -28,7 +29,7 @@ namespace Isosurface
         SDFShape[] shape;
 
         const int minResolution = 1;
-        const int maxResolution = 50;
+        const int maxResolution = 96;
         // [SerializeField]
         // public int shapeSize = 1;
 
@@ -80,17 +81,10 @@ namespace Isosurface
         //     transform.position = Vector3.one * (-size * 0.5f + size / resolution);
         // }
 
-        Vector4[] arr;
-
         void OnEnable() 
         {
             isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4);
-            surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4 * 4);
-
-            arr = new Vector4[resolution*resolution*resolution];
-            for (int i = 0; i < arr.Length; i++) {
-                arr[i] = Vector4.zero;
-            }
+            surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
         }
 
         void OnDisable()
@@ -154,7 +148,7 @@ namespace Isosurface
             transparencyMaterial.SetFloat(pointSizeID, pointSize);
             
             var bounds = new Bounds(Vector3.zero, Vector3.one * (size + step));
-            Graphics.DrawMeshInstancedProcedural(mesh, 0, transparencyMaterial, bounds, resolution * resolution * resolution);
+            // Graphics.DrawMeshInstancedProcedural(mesh, 0, transparencyMaterial, bounds, resolution * resolution * resolution);
 
             material.SetBuffer(isoValsId, isoValsBuffer);
             material.SetFloat(stepId, step);
@@ -165,8 +159,6 @@ namespace Isosurface
             material.SetFloat(pointSizeID, pointSize);
             
             Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution * resolution);
-
-            surfacePointsBuffer.SetData(arr);
 
             // surface points
             int surfacePointsKernel = surfacePointsShader.FindKernel("SurfacePointsKernel");
@@ -189,7 +181,7 @@ namespace Isosurface
             surfacePointMaterial.SetFloat(pointSizeID, pointSize);
             surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
 
-            Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution * resolution * resolution /*- resolution * resolution*/);
+            Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution * resolution * resolution);
         }
 
         // void PickNextFunction()
