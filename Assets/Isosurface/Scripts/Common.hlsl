@@ -29,6 +29,10 @@ uint threeDToOneD(uint3 idPos) {
 	return idPos.x + _Resolution * (idPos.y + _Resolution * idPos.z);
 }
 
+float3 linInterpolate(float3 p1, float3 p2, float d1, float d2) {
+    return (1-d1/(d1-d2))*p1 + d1/(d1-d2)*p2;
+}
+
 void SetIsoVal(uint3 id, float val) 
 {
 	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;

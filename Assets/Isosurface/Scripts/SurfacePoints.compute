@@ -72,8 +72,9 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
     if (num_edges_intersected) {
         float3 edge_intersections[12];
         for (int i = 0; i < num_edges_intersected; i++) {
-            // simple avg
-            float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
+            float3 edge_crossing = linInterpolate(edges_on_surface[i].end, edges_on_surface[i].start, _IsoVals[threeDToOneD(edges_on_surface[i].end)], _IsoVals[threeDToOneD(edges_on_surface[i].start)]);
+            // // simple avg
+            // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
             edge_intersections[i] = edge_crossing;
         }
 
