@@ -28,7 +28,7 @@ namespace Isosurface
         [SerializeField]
         SDFShape[] shape;
 
-        const int minResolution = 1;
+        const int minResolution = 4;
         const int maxResolution = 96;
         // [SerializeField]
         // public int shapeSize = 1;
@@ -61,6 +61,16 @@ namespace Isosurface
 
         [SerializeField]
         FunctionLibrary.FunctionName function = FunctionLibrary.FunctionName.Sphere;
+
+
+        [SerializeField]
+        bool showVolume = true;
+
+        [SerializeField]
+        bool showGrid = true;
+
+        [SerializeField]
+        bool showSurface = true;
 
         // public enum TransitionMode { Cycle, Random }
 
@@ -120,8 +130,11 @@ namespace Isosurface
         }
 
         void UpdateFunctionOnGPU () {
-            float step = size / (float)resolution;
-            isoValsShader.SetInt(resolutionId, resolution);
+            int resolution_ = resolution / 4;
+            resolution_ *= 4;
+
+            float step = size / (float)resolution_;
+            isoValsShader.SetInt(resolutionId, resolution_);
             isoValsShader.SetFloat(stepId, step);
 
             // duration += Time.deltaTime;
@@ -136,33 +149,38 @@ namespace Isosurface
             // var kernelIndex = 1;
             isoValsShader.SetBuffer(kernelIndex, isoValsId, isoValsBuffer);
 
-            int groups = Mathf.CeilToInt(resolution / 4f);
+            int groups = Mathf.CeilToInt(resolution_ / 4f);
             isoValsShader.Dispatch(kernelIndex, groups, groups, groups);
-
-            transparencyMaterial.SetBuffer(isoValsId, isoValsBuffer);
-            transparencyMaterial.SetFloat(stepId, step);
-            transparencyMaterial.SetInt(resolutionId, resolution);
-            transparencyMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            transparencyMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
-            transparencyMaterial.SetFloat(pointBrightnessID, pointBrightness);
-            transparencyMaterial.SetFloat(pointSizeID, pointSize);
-            
+                
             var bounds = new Bounds(Vector3.zero, Vector3.one * (size + step));
-            // Graphics.DrawMeshInstancedProcedural(mesh, 0, transparencyMaterial, bounds, resolution * resolution * resolution);
 
-            material.SetBuffer(isoValsId, isoValsBuffer);
-            material.SetFloat(stepId, step);
-            material.SetInt(resolutionId, resolution);
-            material.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            material.SetVector(viewDirID, -Camera.main.transform.forward);
-            material.SetFloat(pointBrightnessID, pointBrightness);
-            material.SetFloat(pointSizeID, pointSize);
-            
-            Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution * resolution);
+            if (showGrid) {
+                transparencyMaterial.SetBuffer(isoValsId, isoValsBuffer);
+                transparencyMaterial.SetFloat(stepId, step);
+                transparencyMaterial.SetInt(resolutionId, resolution_);
+                transparencyMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                transparencyMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
+                transparencyMaterial.SetFloat(pointBrightnessID, pointBrightness);
+                transparencyMaterial.SetFloat(pointSizeID, pointSize);
+                
+                Graphics.DrawMeshInstancedProcedural(mesh, 0, transparencyMaterial, bounds, resolution_ * resolution_ * resolution_);
+            }
+
+            if (showVolume) {
+                material.SetBuffer(isoValsId, isoValsBuffer);
+                material.SetFloat(stepId, step);
+                material.SetInt(resolutionId, resolution_);
+                material.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                material.SetVector(viewDirID, -Camera.main.transform.forward);
+                material.SetFloat(pointBrightnessID, pointBrightness);
+                material.SetFloat(pointSizeID, pointSize);
+                
+                Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution_ * resolution_ * resolution_);
+            }
 
             // surface points
             int surfacePointsKernel = surfacePointsShader.FindKernel("SurfacePointsKernel");
-            surfacePointsShader.SetInt(resolutionId, resolution);
+            surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
             surfacePointsShader.SetFloat(stepId, step);
             surfacePointsShader.SetBuffer(surfacePointsKernel, isoValsId, isoValsBuffer);
@@ -170,18 +188,20 @@ namespace Isosurface
             // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
             surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
 
-            // var data = new Vector3[resolution*resolution*resolution];
+            // var data = new Vector3[resolution_*resolution_*resolution_];
             // surfacePointsBuffer.GetData(data);
             // print(data[10]);
 
-            surfacePointMaterial.SetFloat(stepId, step);
-            surfacePointMaterial.SetInt(resolutionId, resolution);
-            surfacePointMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            surfacePointMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
-            surfacePointMaterial.SetFloat(pointSizeID, pointSize);
-            surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
+            if (showSurface) {
+                surfacePointMaterial.SetFloat(stepId, step);
+                surfacePointMaterial.SetInt(resolutionId, resolution_);
+                surfacePointMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                surfacePointMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
+                surfacePointMaterial.SetFloat(pointSizeID, pointSize);
+                surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
 
-            Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution * resolution * resolution);
+                Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
+            }
         }
 
         // void PickNextFunction()
