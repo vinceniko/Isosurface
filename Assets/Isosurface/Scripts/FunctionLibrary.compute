@@ -4,30 +4,7 @@
 #pragma kernel PyramidKernel
 #pragma kernel OctahedronKernel
 
-RWStructuredBuffer<float> _IsoVals;
-uint _Resolution;
-float _Step, _Time;
-float4x4 _GridToWorld;
-float4x4 _ShapeToWorld[2];
-
-int threeDToOneD(int3 pos) {
-	return pos.x + _Resolution * (pos.y + _Resolution * pos.z);
-}
-
-float3 GetPos(uint3 id)
-{
-    return mul(_GridToWorld, float4((id.zyx - _Resolution * 0.5) * _Step + _Step * 0.5, 1.0)).xyz;
-    // return mul(_GridToWorld, float4(id.zyx * _Step, 1.0)).xyz;
-}
-
-void SetIsoVal(uint3 id, float val) 
-{
-	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
-	if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) 
-  {
-		_IsoVals[threeDToOneD(id)] = val;
-	}
-}
+#include "Common.hlsl"
 
 float Sphere(float3 p, float s)
 {
@@ -81,9 +58,11 @@ float opUnion( float d1, float d2 ) { return min(d1,d2); }
 	[numthreads(4, 4, 4)] \
 	void function##Kernel (uint3 id: SV_DispatchThreadID) \
     { \
-		float3 pos = GetPos(id); \
-		SetIsoVal(id, function(mul(_ShapeToWorld[0], float4(pos, 1.0)).xyz, 0.5)); \
+		float3 pos = GetPosSurface(id); \ // inverse operations for sdfs. grid to world goes first
+		SetIsoVal(id, function(mul(_ShapeToWorld, float4(pos, 1.0)).xyz, 0.5)); \
 	}
+
+// SetIsoVal(id, (id.x >= 0 && id.y >= 0 && id.z >= 0) ? -2.0 : 2.0); \ // check origin and positive axes directions
 
 // SetIsoVal(id, opUnion(function(mul(_ShapeToWorld[0], float4(uv, 1.0)).xyz, 0.5), function(mul(_ShapeToWorld[1], float4(uv, 1.0)).xyz, 0.5)));
 // SetIsoVal(id, function(uv, _ShapeSize));

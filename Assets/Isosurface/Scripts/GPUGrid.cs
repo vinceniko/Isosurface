@@ -6,10 +6,13 @@ namespace Isosurface
     public class GPUGrid : MonoBehaviour
     {
         [SerializeField]
-        ComputeShader computeShader = default;
+        ComputeShader isoValsShader = default;
+        [SerializeField]
+        ComputeShader surfacePointsShader = default;
 
         static readonly int 
             isoValsId = Shader.PropertyToID("_IsoVals"),
+            surfacePointsId = Shader.PropertyToID("_SurfacePoints"),
             resolutionId = Shader.PropertyToID("_Resolution"),
             stepId = Shader.PropertyToID("_Step"),
             timeId = Shader.PropertyToID("_Time"),
@@ -39,12 +42,15 @@ namespace Isosurface
         float pointSize = 1.5f;
 
         ComputeBuffer isoValsBuffer;
+        ComputeBuffer surfacePointsBuffer;
 
         [SerializeField]
         Material material = default;
 
         [SerializeField]
         Material transparencyMaterial = default;
+        [SerializeField]
+        Material surfacePointMaterial = default;
 
         [SerializeField]
         Mesh mesh = default;
@@ -74,15 +80,25 @@ namespace Isosurface
         //     transform.position = Vector3.one * (-size * 0.5f + size / resolution);
         // }
 
+        Vector4[] arr;
+
         void OnEnable() 
         {
             isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4);
+            surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4 * 4);
+
+            arr = new Vector4[resolution*resolution*resolution];
+            for (int i = 0; i < arr.Length; i++) {
+                arr[i] = Vector4.zero;
+            }
         }
 
         void OnDisable()
         {
             isoValsBuffer.Release();
             isoValsBuffer = null;
+            surfacePointsBuffer.Release();
+            surfacePointsBuffer = null;
         }
 
         void Update()
@@ -111,23 +127,23 @@ namespace Isosurface
 
         void UpdateFunctionOnGPU () {
             float step = size / (float)resolution;
-            computeShader.SetInt(resolutionId, resolution);
-            computeShader.SetFloat(stepId, step);
+            isoValsShader.SetInt(resolutionId, resolution);
+            isoValsShader.SetFloat(stepId, step);
 
             // duration += Time.deltaTime;
-            // computeShader.SetFloat(sId, (shapeSize * (((Mathf.Sin(5f * duration) + 2f) * 0.5f))));
-            // computeShader.SetFloat(sId, shapeSize);
+            // isoValsShader.SetFloat(sId, (shapeSize * (((Mathf.Sin(5f * duration) + 2f) * 0.5f))));
+            // isoValsShader.SetFloat(sId, shapeSize);
 
-            computeShader.SetFloat(timeId, Time.time);
-            computeShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            computeShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix.inverse).ToArray());
+            isoValsShader.SetFloat(timeId, Time.time);
+            isoValsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            isoValsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix.inverse).ToArray());
 
             var kernelIndex = (int)function;
             // var kernelIndex = 1;
-            computeShader.SetBuffer(kernelIndex, isoValsId, isoValsBuffer);
+            isoValsShader.SetBuffer(kernelIndex, isoValsId, isoValsBuffer);
 
             int groups = Mathf.CeilToInt(resolution / 4f);
-            computeShader.Dispatch(kernelIndex, groups, groups, groups);
+            isoValsShader.Dispatch(kernelIndex, groups, groups, groups);
 
             transparencyMaterial.SetBuffer(isoValsId, isoValsBuffer);
             transparencyMaterial.SetFloat(stepId, step);
@@ -149,6 +165,31 @@ namespace Isosurface
             material.SetFloat(pointSizeID, pointSize);
             
             Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution * resolution);
+
+            surfacePointsBuffer.SetData(arr);
+
+            // surface points
+            int surfacePointsKernel = surfacePointsShader.FindKernel("SurfacePointsKernel");
+            surfacePointsShader.SetInt(resolutionId, resolution);
+            surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            surfacePointsShader.SetFloat(stepId, step);
+            surfacePointsShader.SetBuffer(surfacePointsKernel, isoValsId, isoValsBuffer);
+            surfacePointsShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
+            // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
+            surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
+
+            // var data = new Vector3[resolution*resolution*resolution];
+            // surfacePointsBuffer.GetData(data);
+            // print(data[10]);
+
+            surfacePointMaterial.SetFloat(stepId, step);
+            surfacePointMaterial.SetInt(resolutionId, resolution);
+            surfacePointMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            surfacePointMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
+            surfacePointMaterial.SetFloat(pointSizeID, pointSize);
+            surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
+
+            Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution * resolution * resolution /*- resolution * resolution*/);
         }
 
         // void PickNextFunction()

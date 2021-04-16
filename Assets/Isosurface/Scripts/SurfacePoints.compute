@@ -1,0 +1,94 @@
+#pragma kernel SurfacePointsKernel
+
+#include "Common.hlsl"
+
+struct Edge {
+    float3 start;
+    float3 end;
+};
+
+[numthreads(4, 4, 4)]
+void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
+    float3 pos = id; // cube rooted at pos
+
+    Edge cube_edges[12];
+
+    // strides
+    int3 x_stride = int3(1, 0, 0);
+    int3 y_stride = int3(0, 1, 0);
+    int3 z_stride = int3(0, 0, 1);
+    int3 dim_offsets[3] = {x_stride, y_stride, z_stride};
+    
+    // operate on each axis
+    for (int i = 0; i < 3; i++) {
+        int3 main_dim_offset = dim_offsets[i];
+
+        int other_dims[2];
+        for (int dim_i = 0, arr_idx = 0; dim_i < 3; dim_i++) {
+            if (dim_i != i) {
+                other_dims[arr_idx] = dim_i;
+                arr_idx++;
+            }
+        }
+
+        // edge starts
+        Edge dim_edges[4];
+        // vertical, horizontal
+        for (int j = 0; j < 2; j++) {
+            dim_edges[j].start = pos + dim_offsets[other_dims[j]] * _Step;
+        }
+        // root
+        dim_edges[2].start = pos;
+        // diagonal
+        float3 diag_offset = float3(0.0, 0.0, 0.0);
+        for (int j = 0; j < 2; j++) {
+            diag_offset += (pos + dim_offsets[other_dims[j]] * _Step);
+        }
+        dim_edges[3].start = diag_offset;
+        
+        // edge ends
+        for (int j = 0; j < 4; j++) {
+            dim_edges[j].end = dim_edges[j].start + main_dim_offset * _Step;
+        }
+
+        // add to cube_edges
+        for (int j = 0; j < 4; j++) {
+            cube_edges[i * 4 + j] = dim_edges[j];
+        }
+    }
+
+    Edge edges_on_surface[12];
+    int num_edges_intersected = 0;
+    for (int i = 0; i < 12; i++) {
+        Edge cube_edge = cube_edges[i];
+        if (_IsoVals[threeDToOneD(cube_edge.start)] * _IsoVals[threeDToOneD(cube_edge.end)] < 0) {
+            edges_on_surface[num_edges_intersected] = cube_edge;
+            num_edges_intersected++;
+        }
+    }
+
+    if (num_edges_intersected) {
+        float3 edge_intersections[12];
+        for (int i = 0; i < num_edges_intersected; i++) {
+            // simple avg
+            float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
+            edge_intersections[i] = edge_crossing;
+        }
+
+        float3 surface_point = float3(0.0, 0.0, 0.0);
+        int count = 0;
+        for (int i = 0; i < num_edges_intersected; i++) {
+            float3 vert = edge_intersections[i];
+            surface_point += vert;
+            count++;
+        }
+        surface_point /= float3(count, count, count);
+
+        // if at least one edge intersection
+        SetSurfacePoint(id, surface_point.zyx);
+    } else {
+        SetSurfacePoint(id, float3(_Resolution+1, _Resolution+1, _Resolution+1));
+    }
+    
+    // SetSurfacePoint(id, pos);
+}

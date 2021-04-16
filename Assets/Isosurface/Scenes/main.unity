@@ -199,9 +199,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4776093}
-  m_LocalRotation: {x: 0, y: -0.99999964, z: 0, w: 0.0009006596}
+  m_LocalRotation: {x: 0, y: 0.9307608, z: 0, w: 0.3656288}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 34.031723, y: 34.031723, z: 34.031723}
+  m_LocalScale: {x: 50, y: 50, z: 50}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
@@ -218,9 +218,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db22a2c0f33b241dc9554df54051e701, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shapeSize: 15
-  sineAnimate: 1
-  rotationAngles: 20
+  shapeSize: 25
+  sineAnimate: 0
+  rotationAngles: 0
 --- !u!1 &133714493
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,7 +405,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 439201071}
-  m_LocalRotation: {x: 0, y: -0.99999964, z: 0, w: 0.0009006596}
+  m_LocalRotation: {x: 0, y: 0.8442978, z: 0, w: -0.53587425}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 34.031723, y: 34.031723, z: 34.031723}
   m_Children: []
@@ -693,7 +693,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25ee17bcf81e34a4c9f1f9a544d9d1d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  computeShader: {fileID: 7200000, guid: 32ebed683743d4edf945768d7b8f65ea, type: 3}
+  isoValsShader: {fileID: 7200000, guid: 32ebed683743d4edf945768d7b8f65ea, type: 3}
+  surfacePointsShader: {fileID: 7200000, guid: dc12e59cf8c97424fb647c5da1eb453e, type: 3}
   shape:
   - {fileID: 4776097}
   size: 50
@@ -701,6 +702,8 @@ MonoBehaviour:
   pointSize: 2.43
   material: {fileID: 2100000, guid: 12569a16c77b9434cafe3f3c82286cab, type: 2}
   transparencyMaterial: {fileID: 2100000, guid: ad2c9167e3fc643ab96192688b4d4556,
+    type: 2}
+  surfacePointMaterial: {fileID: 2100000, guid: 29f5f5cd6c54c2644903f3eeb7aa4b48,
     type: 2}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   pointBrightness: 0.99
