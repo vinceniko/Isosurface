@@ -44,6 +44,7 @@ namespace Isosurface
 
         ComputeBuffer isoValsBuffer;
         ComputeBuffer surfacePointsBuffer;
+        ComputeBuffer surfacePointsCountBuffer = default;
 
         [SerializeField]
         Material material = default;
@@ -94,7 +95,8 @@ namespace Isosurface
         void OnEnable() 
         {
             isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4);
-            surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
+            surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)), ComputeBufferType.Append);
+            surfacePointsCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.IndirectArguments);
         }
 
         void OnDisable()
@@ -179,6 +181,8 @@ namespace Isosurface
             }
 
             // surface points
+            surfacePointsBuffer.SetCounterValue(0);
+
             int surfacePointsKernel = surfacePointsShader.FindKernel("SurfacePointsKernel");
             surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
@@ -187,6 +191,16 @@ namespace Isosurface
             surfacePointsShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
             // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
             surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
+
+            // Copy the count.
+            ComputeBuffer.CopyCount(surfacePointsBuffer, surfacePointsCountBuffer, 0);
+            
+            // Retrieve it into array.
+            int[] counter = new int[1] { 0 };
+            surfacePointsCountBuffer.GetData(counter);
+            
+            // Actual count in append buffer.
+            int count = counter[0]; // <-- This is the answer
 
             // var data = new Vector3[resolution_*resolution_*resolution_];
             // surfacePointsBuffer.GetData(data);
@@ -200,7 +214,7 @@ namespace Isosurface
                 surfacePointMaterial.SetFloat(pointSizeID, pointSize);
                 surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
 
-                Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
+                Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, count);
             }
         }
 

@@ -2,7 +2,7 @@ uint _Resolution;
 float4x4 _GridToWorld;
 float _Step;
 RWStructuredBuffer<float> _IsoVals;
-RWStructuredBuffer<float4> _SurfacePoints;
+AppendStructuredBuffer<float4> _SurfacePoints;
 float _Time;
 float4x4 _ShapeToWorld;
 
@@ -49,8 +49,6 @@ void SetSurfacePoint(uint3 id, float3 val)
     id.x >= 0 && id.y >= 0 && id.z >= 0 &&
     val.x < _Resolution && val.y < _Resolution && val.z < _Resolution) 
     {
-		_SurfacePoints[threeDToOneD(id)] = float4(val, 1.0);
-	} else {
-        _SurfacePoints[threeDToOneD(id)] = float4(val, 0.0);
-    }
+		_SurfacePoints.Append(float4(val, 1.0));
+	} 
 }

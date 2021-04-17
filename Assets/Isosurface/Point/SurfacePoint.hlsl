@@ -66,9 +66,10 @@ void ShaderGraphFunction_half (half3 In, out half3 Out) {
 	Out = In;
 }
 
+// TODO: remove
 void clip_float(float3 In, out float3 Out) {
 	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
-		if (_Alpha < 1.0) discard;
+		// if (_Alpha < 1.0) discard;
 	#endif
 	Out = In;
 }

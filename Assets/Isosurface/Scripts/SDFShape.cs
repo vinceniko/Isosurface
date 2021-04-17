@@ -10,7 +10,7 @@ namespace Isosurface
         // [SerializeField]
         // GPUGrid grid;
 
-        [SerializeField]
+        [SerializeField, Range(1, 100)]
         int shapeSize = 40;
 
         [SerializeField]
