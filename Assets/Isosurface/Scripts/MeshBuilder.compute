@@ -1,0 +1,102 @@
+#pragma kernel SurfacePointsKernel
+
+#include "Common.hlsl"
+
+struct Triangle {
+    float3 verts[3];
+};
+
+AppendStructuredBuffer<Triangle> _Mesh;
+
+[numthreads(4, 4, 4)]
+void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
+    float3 pos = id; // cube rooted at pos
+    
+    if (id.x >= _Resolution && id.y >= _Resolution && id.z >= _Resolution) return;
+
+    Edge cube_edges[12];
+
+    // strides
+    int3 x_stride = int3(1, 0, 0);
+    int3 y_stride = int3(0, 1, 0);
+    int3 z_stride = int3(0, 0, 1);
+    int3 dim_offsets[3] = {x_stride, y_stride, z_stride};
+    
+    // operate on each axis
+    for (int i = 0; i < 3; i++) {
+        int3 main_dim_offset = dim_offsets[i];
+
+        int other_dims[2];
+        for (int dim_i = 0, arr_idx = 0; dim_i < 3; dim_i++) {
+            if (dim_i != i) {
+                other_dims[arr_idx] = dim_i;
+                arr_idx++;
+            }
+        }
+
+        // edge crossed in middle of quad
+        Edge axis_edge;
+        axis_edge.start = float3(0.0, 0.0, 0.0);
+        for (int j = 0; j < 2; j++) {
+            axis_edge.start += other_dims[j];
+        }
+        axis_edge.end = pos += (x_stride + y_stride + z_stride); // all of the axes edges share the same endpoint
+        
+        // edge doesnt cross surface
+        if (_IsoVals[threeDToOneD(axis_edge.start)] * _IsoVals[threeDToOneD(axis_edge.end)] > 0) return;
+
+        // get quad along axis
+        float3 quad_points[4];
+
+        // root
+        quad_points[0] = _SurfacePoints[threeDToOneD(pos)].xyz;
+        // vertical, horizontal
+        for (int j = 0; j < 2; j++) {
+            quad_points[j] = _SurfacePoints[threeDToOneD(pos + dim_offsets[other_dims[j]])].xyz;
+        }
+        // diagonal
+        float3 diag_offset = float3(0.0, 0.0, 0.0);
+        for (int j = 0; j < 2; j++) {
+            diag_offset += dim_offsets[other_dims[j]];
+        }
+        quad_points[3] = _SurfacePoints[threeDToOneD(pos + diag_offset)].xyz;
+
+        // split along shorter diagonal, 1,4 or 2,3
+        // clockwise winding order of triangles
+        // outside of surface is positive
+        // verts look like when facing:
+        // 3 4
+        // 1 2
+
+        int3 tri_indices[2];
+        bool facing_outside = axis_edge.start < 0;
+        if (facing_outside) {
+            if (length(quad_points[3] - quad_points[0]) < length(quad_points[2] - quad_points[1])) { // split along shorter diag
+                tri_indices[0] = int3(1,3,4);
+                tri_indices[1] = int3(1,4,2);
+            } else {
+                tri_indices[0] = int3(1,3,2);
+                tri_indices[1] = int3(3,4,2);
+            }
+        } else { // reverse the above triangles' vert order, too lazy to put into loop rn
+            if (length(quad_points[3] - quad_points[0]) < length(quad_points[2] - quad_points[1])) { // split along shorter diag
+                tri_indices[0] = int3(4,3,1);
+                tri_indices[1] = int3(2,4,1);
+            } else {
+                tri_indices[0] = int3(2,3,1);
+                tri_indices[1] = int3(2,4,3);
+            }
+        }
+
+        Triangle tris[2];
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 3; k++) {
+                tris[j].verts[k] = quad_points[tri_indices[j][k]];
+            }
+        }
+
+
+        _Mesh.Append(tris[0]);
+        _Mesh.Append(tris[1]);
+    }
+}

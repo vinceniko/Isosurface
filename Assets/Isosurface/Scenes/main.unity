@@ -199,7 +199,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4776093}
-  m_LocalRotation: {x: -0.12303952, y: 0.75187963, z: -0.63090175, w: -0.14663275}
+  m_LocalRotation: {x: 0.03593371, y: 0.76484656, z: -0.6417824, w: 0.04282486}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 20, y: 20, z: 20}
   m_Children: []
@@ -405,9 +405,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 439201071}
-  m_LocalRotation: {x: 0, y: -0.8471878, z: 0, w: 0.5312936}
+  m_LocalRotation: {x: 0, y: -0.99801284, z: 0, w: 0.06301087}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 34.255535, y: 34.255535, z: 34.255535}
+  m_LocalScale: {x: 20.073242, y: 20.073242, z: 20.073242}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -695,6 +695,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isoValsShader: {fileID: 7200000, guid: 32ebed683743d4edf945768d7b8f65ea, type: 3}
   surfacePointsShader: {fileID: 7200000, guid: dc12e59cf8c97424fb647c5da1eb453e, type: 3}
+  meshShader: {fileID: 7200000, guid: cc1c5341b253d5948aa3cbe44c9b592c, type: 3}
   shape:
   - {fileID: 4776097}
   size: 50
@@ -705,12 +706,14 @@ MonoBehaviour:
     type: 2}
   surfacePointMaterial: {fileID: 2100000, guid: 29f5f5cd6c54c2644903f3eeb7aa4b48,
     type: 2}
+  meshMaterial: {fileID: 2100000, guid: cd3bce8a4e40e17489f7f988c394da7d, type: 2}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   pointBrightness: 0.636
   function: 1
-  showVolume: 1
   showGrid: 1
+  showVolume: 1
   showSurface: 1
+  showMesh: 1
 --- !u!4 &1924575494
 Transform:
   m_ObjectHideFlags: 0

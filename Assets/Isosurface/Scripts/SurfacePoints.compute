@@ -2,23 +2,16 @@
 
 #include "Common.hlsl"
 
-struct Edge {
-    float3 start;
-    float3 end;
-};
-
 [numthreads(4, 4, 4)]
 void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
     float3 pos = id; // cube rooted at pos
     
-    if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) SetSurfacePoint(pos, float3(_Resolution+1, _Resolution+1, _Resolution+1));
-
     Edge cube_edges[12];
 
     // strides
-    int3 x_stride = int3(1, 0, 0);
-    int3 y_stride = int3(0, 1, 0);
-    int3 z_stride = int3(0, 0, 1);
+    const int3 x_stride = int3(1, 0, 0);
+    const int3 y_stride = int3(0, 1, 0);
+    const int3 z_stride = int3(0, 0, 1);
     int3 dim_offsets[3] = {x_stride, y_stride, z_stride};
     
     // operate on each axis

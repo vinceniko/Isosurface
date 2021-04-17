@@ -5,6 +5,11 @@ RWStructuredBuffer<float> _IsoVals;
 RWStructuredBuffer<float4> _SurfacePoints;
 float4x4 _ShapeToWorld;
 
+struct Edge {
+    float3 start;
+    float3 end;
+};
+
 float3 transformToCenter(float3 pos) {
     return (pos - _Resolution * 0.5) * _Step + _Step * 0.5;
 }

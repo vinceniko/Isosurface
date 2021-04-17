@@ -10,10 +10,19 @@ namespace Isosurface
         ComputeShader isoValsShader = default;
         [SerializeField]
         ComputeShader surfacePointsShader = default;
+        [SerializeField]
+        ComputeShader meshShader = default;
+
+        
+        ComputeBuffer isoValsBuffer;
+        ComputeBuffer surfacePointsBuffer;
+        ComputeBuffer meshBuffer;
+
 
         static readonly int 
             isoValsId = Shader.PropertyToID("_IsoVals"),
             surfacePointsId = Shader.PropertyToID("_SurfacePoints"),
+            meshId = Shader.PropertyToID("_Mesh"),
             resolutionId = Shader.PropertyToID("_Resolution"),
             stepId = Shader.PropertyToID("_Step"),
             timeId = Shader.PropertyToID("_Time"),
@@ -42,9 +51,6 @@ namespace Isosurface
         [SerializeField, Range(0, 3.5f)]
         float pointSize = 1.5f;
 
-        ComputeBuffer isoValsBuffer;
-        ComputeBuffer surfacePointsBuffer;
-
         [SerializeField]
         Material material = default;
 
@@ -52,6 +58,8 @@ namespace Isosurface
         Material transparencyMaterial = default;
         [SerializeField]
         Material surfacePointMaterial = default;
+        [SerializeField]
+        Material meshMaterial = default;
 
         [SerializeField]
         Mesh mesh = default;
@@ -64,13 +72,30 @@ namespace Isosurface
 
 
         [SerializeField]
-        bool showVolume = true;
-
-        [SerializeField]
         bool showGrid = true;
-
+        [SerializeField]
+        bool showVolume = true;
         [SerializeField]
         bool showSurface = true;
+        [SerializeField]
+        bool showMesh = true;
+
+        // DrawProceduralIndirect
+        ComputeBuffer argsBuffer;
+        [StructLayout(LayoutKind.Sequential)]
+        struct DrawCallArgBuffer
+        {
+            public const int size =
+                sizeof(int) +
+                sizeof(int) +
+                sizeof(int) +
+                sizeof(int);
+            public int vertexCountPerInstance;
+            public int instanceCount;
+            public int startVertexLocation;
+            public int startInstanceLocation;
+        }
+
 
         // public enum TransitionMode { Cycle, Random }
 
@@ -93,8 +118,13 @@ namespace Isosurface
 
         void OnEnable() 
         {
-            isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, 4);
+            isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(float)));
             surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
+            
+            argsBuffer = new ComputeBuffer(1, DrawCallArgBuffer.size, ComputeBufferType.IndirectArguments);
+            int[] args = new int[] { 0, 1, 0, 0 };
+            argsBuffer.SetData(args);
+            meshBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Append);
         }
 
         void OnDisable()
@@ -103,6 +133,10 @@ namespace Isosurface
             isoValsBuffer = null;
             surfacePointsBuffer.Release();
             surfacePointsBuffer = null;
+            argsBuffer.Release();
+            argsBuffer = null;
+            meshBuffer.Release();
+            meshBuffer = null;
         }
 
         void Update()
@@ -179,7 +213,7 @@ namespace Isosurface
             }
 
             // surface points
-            int surfacePointsKernel = surfacePointsShader.FindKernel("SurfacePointsKernel");
+            int surfacePointsKernel = 0;
             surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
             surfacePointsShader.SetFloat(stepId, step);
@@ -202,6 +236,49 @@ namespace Isosurface
 
                 Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
             }
+
+
+            // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
+            // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
+            // https://samdriver.xyz/article/compute-shader-intro
+            // https://cyangamedev.wordpress.com/2020/06/05/urp-shader-code/
+            // https://gist.github.com/phi-lira/225cd7c5e8545be602dca4eb5ed111ba
+
+            // // construct mesh
+            // meshBuffer.SetCounterValue(0);
+
+            // int meshKernel = 0;
+            // meshShader.SetInt(resolutionId, resolution_);
+            // meshShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            // meshShader.SetFloat(stepId, step);
+            // meshShader.SetBuffer(meshKernel, isoValsId, isoValsBuffer);
+            // meshShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
+            // meshShader.SetBuffer(meshKernel, meshId, meshBuffer);
+            // meshShader.Dispatch(meshKernel, groups, groups, groups);
+
+            // // Copy the count.
+            // ComputeBuffer.CopyCount(meshBuffer, argsBuffer, 0);
+            
+            // // TODO: do not retrieve from GPU. write a compute shader to adjust count: https://gist.github.com/DuncanF/353509dd397ea5f292fa52d1b9b5133d
+            // // Retrieve it into array.
+            // int[] args = new int[4];
+            // argsBuffer.GetData(args);
+            
+            // // Actual count in append buffer.
+            // args[0] *= 4; // quads
+
+            // argsBuffer.SetData(args);
+
+            // // if (showMesh) {
+            // meshMaterial.SetFloat(stepId, step);
+            // meshMaterial.SetInt(resolutionId, resolution_);
+            // meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            // // meshMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
+            // meshMaterial.SetFloat(pointSizeID, pointSize);
+            // meshMaterial.SetBuffer(surfacePointsId, meshBuffer);
+
+            // Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
+            // }
         }
 
         // void PickNextFunction()
