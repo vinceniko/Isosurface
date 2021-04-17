@@ -47,7 +47,7 @@ float4x4 look_at_matrix(float3 at, float3 eye, float3 up)
 void ConfigureProcedural () {
 	#if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
 		unity_ObjectToWorld = 0.0;
-		float4 pos = mul(_GridToWorld, float4((_SurfacePoints[unity_InstanceID].xyz - _Resolution * 0.5) * _Step + _Step * 0.5, 1.0));
+		float4 pos = mul(_GridToWorld, float4(_SurfacePoints[unity_InstanceID].xyz, 1.0));
 		_Alpha = _SurfacePoints[unity_InstanceID].w;
 		unity_ObjectToWorld._m03_m13_m23_m33 = float4(pos.xyz, 1.0);
 		// float3 test = oneDToThreeD(unity_InstanceID);

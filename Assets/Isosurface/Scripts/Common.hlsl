@@ -3,12 +3,19 @@ float4x4 _GridToWorld;
 float _Step;
 RWStructuredBuffer<float> _IsoVals;
 RWStructuredBuffer<float4> _SurfacePoints;
-float _Time;
 float4x4 _ShapeToWorld;
+
+float3 transformToCenter(float3 pos) {
+    return (pos - _Resolution * 0.5) * _Step + _Step * 0.5;
+}
+
+float3 inverseTransformToCenter(float3 pos) {
+    return ((-pos - 0.5 * _Resolution * _Step) + 0.5 * _Step) / _Step;
+}
 
 float3 GetPosSurface(uint3 id)
 {
-    return mul(_GridToWorld, float4((id.zyx /*axes swapped for some reason*/ - _Resolution * 0.5 /*shift to origin*/) * _Step + _Step * 0.5, 1.0)).xyz;
+    return mul(_GridToWorld, transformToCenter(id.zyx)).xyz;
     // return mul(_GridToWorld, float4(id.zyx * _Step, 1.0)).xyz;
 }
 
@@ -49,6 +56,7 @@ void SetSurfacePoint(uint3 id, float3 val)
     id.x >= 0 && id.y >= 0 && id.z >= 0 &&
     val.x < _Resolution && val.y < _Resolution && val.z < _Resolution) 
     {
+        val = transformToCenter(val);
 		_SurfacePoints[threeDToOneD(id)] = float4(val, 1.0);
 	} else {
         _SurfacePoints[threeDToOneD(id)] = float4(val, 0.0);
