@@ -237,48 +237,46 @@ namespace Isosurface
                 Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
             }
 
+            if (showMesh) {
+                // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
+                // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
+                // https://samdriver.xyz/article/compute-shader-intro
+                // https://cyangamedev.wordpress.com/2020/06/05/urp-shader-code/
+                // https://gist.github.com/phi-lira/225cd7c5e8545be602dca4eb5ed111ba
 
-            // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
-            // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
-            // https://samdriver.xyz/article/compute-shader-intro
-            // https://cyangamedev.wordpress.com/2020/06/05/urp-shader-code/
-            // https://gist.github.com/phi-lira/225cd7c5e8545be602dca4eb5ed111ba
+                // construct mesh
+                meshBuffer.SetCounterValue(0);
 
-            // // construct mesh
-            // meshBuffer.SetCounterValue(0);
+                int meshKernel = 0;
+                meshShader.SetInt(resolutionId, resolution_);
+                meshShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                meshShader.SetFloat(stepId, step);
+                meshShader.SetBuffer(meshKernel, isoValsId, isoValsBuffer);
+                meshShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
+                meshShader.SetBuffer(meshKernel, meshId, meshBuffer);
+                meshShader.Dispatch(meshKernel, groups, groups, groups);
 
-            // int meshKernel = 0;
-            // meshShader.SetInt(resolutionId, resolution_);
-            // meshShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            // meshShader.SetFloat(stepId, step);
-            // meshShader.SetBuffer(meshKernel, isoValsId, isoValsBuffer);
-            // meshShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
-            // meshShader.SetBuffer(meshKernel, meshId, meshBuffer);
-            // meshShader.Dispatch(meshKernel, groups, groups, groups);
+                // Copy the count.
+                ComputeBuffer.CopyCount(meshBuffer, argsBuffer, 0);
+                
+                // TODO: do not retrieve from GPU. write a compute shader to adjust count: https://gist.github.com/DuncanF/353509dd397ea5f292fa52d1b9b5133d
+                // Retrieve it into array.
+                int[] args = new int[4];
+                argsBuffer.GetData(args);
+                
+                // Actual count in append buffer.
+                args[0] *= 1; // verts per triangle
 
-            // // Copy the count.
-            // ComputeBuffer.CopyCount(meshBuffer, argsBuffer, 0);
-            
-            // // TODO: do not retrieve from GPU. write a compute shader to adjust count: https://gist.github.com/DuncanF/353509dd397ea5f292fa52d1b9b5133d
-            // // Retrieve it into array.
-            // int[] args = new int[4];
-            // argsBuffer.GetData(args);
-            
-            // // Actual count in append buffer.
-            // args[0] *= 4; // quads
+                print(args[0]);
 
-            // argsBuffer.SetData(args);
+                argsBuffer.SetData(args);
 
-            // // if (showMesh) {
-            // meshMaterial.SetFloat(stepId, step);
-            // meshMaterial.SetInt(resolutionId, resolution_);
-            // meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-            // // meshMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
-            // meshMaterial.SetFloat(pointSizeID, pointSize);
-            // meshMaterial.SetBuffer(surfacePointsId, meshBuffer);
+                // if (showMesh) {
+                meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                meshMaterial.SetBuffer(meshId, meshBuffer);
 
-            // Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
-            // }
+                Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
+            }
         }
 
         // void PickNextFunction()
