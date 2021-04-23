@@ -199,7 +199,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4776093}
-  m_LocalRotation: {x: 0.03593371, y: 0.76484656, z: -0.6417824, w: 0.04282486}
+  m_LocalRotation: {x: -0.49680373, y: 0.48608717, z: -0.40787414, w: -0.5920676}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 20, y: 20, z: 20}
   m_Children: []
@@ -405,9 +405,9 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 439201071}
-  m_LocalRotation: {x: 0, y: -0.99801284, z: 0, w: 0.06301087}
+  m_LocalRotation: {x: 0, y: 0.36244252, z: 0, w: 0.9320061}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 20.073242, y: 20.073242, z: 20.073242}
+  m_LocalScale: {x: 46.01806, y: 46.01806, z: 46.01806}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -696,6 +696,7 @@ MonoBehaviour:
   isoValsShader: {fileID: 7200000, guid: 32ebed683743d4edf945768d7b8f65ea, type: 3}
   surfacePointsShader: {fileID: 7200000, guid: dc12e59cf8c97424fb647c5da1eb453e, type: 3}
   meshShader: {fileID: 7200000, guid: cc1c5341b253d5948aa3cbe44c9b592c, type: 3}
+  fixArgs: {fileID: 7200000, guid: 73388666a7d442b49b1aec1d4016dd41, type: 3}
   shape:
   - {fileID: 4776097}
   size: 50

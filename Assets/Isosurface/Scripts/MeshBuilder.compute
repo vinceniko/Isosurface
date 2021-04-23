@@ -3,10 +3,12 @@
 #include "Common.hlsl"
 
 struct Triangle {
-    float3 verts[3];
+    float4 verts0;
+    float4 verts1;
+    float4 verts2;
 };
 
-AppendStructuredBuffer<float3> _Mesh;
+AppendStructuredBuffer<Triangle> _Mesh;
 
 [numthreads(4, 4, 4)]
 void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
@@ -44,23 +46,41 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
         if (_IsoVals[threeDToOneD(axis_edge.start)] * _IsoVals[threeDToOneD(axis_edge.end)] > 0) continue;
 
         // get quad along axis
-        float3 quad_points[4];
+        float4 quad_points[4];
         // root
-        quad_points[0] = _SurfacePoints[threeDToOneD(pos)].w > 0 ? _SurfacePoints[threeDToOneD(pos)].xyz : float3(0,0,0);
+        quad_points[0] = _SurfacePoints[threeDToOneD(pos)];
         // horizontal, vertical
         for (int j = 0; j < 2; j++) {
-            quad_points[j+1] = _SurfacePoints[threeDToOneD(pos + dim_offsets[other_dims[j]])].a > 0 ? _SurfacePoints[threeDToOneD(pos + dim_offsets[other_dims[j]])].xyz  : float3(0,0,0);
+            quad_points[j+1] = _SurfacePoints[threeDToOneD(pos + dim_offsets[other_dims[j]])];
         }
         // diagonal
-        float3 diag_offset = pos;
+        float3 diag_offset = float3(0,0,0);
         for (int j = 0; j < 2; j++) {
             diag_offset += dim_offsets[other_dims[j]];
         }
-        quad_points[3] = _SurfacePoints[threeDToOneD(diag_offset)].w > 0 ? _SurfacePoints[threeDToOneD(diag_offset)].xyz : float3(0,0,0);
+        quad_points[3] = _SurfacePoints[threeDToOneD(pos + diag_offset)];
 
         // TODO: iterate through all quad_points and find one that is valid, and set invalid ones to the valid one
+        float4 valid_point;
+        int valid = 0;
+        for (int j = 0; j < 4; j++) {
+            if (quad_points[j].w > 0) {
+                valid_point = quad_points[j];
+                valid++;
+            }
+        }
+        // if (valid == 0) continue;
+        int not_valid = 0;
+        for (int j = 0; j < 4; j++) {
+            if (quad_points[j].w < 1) {
+                // quad_points[j] = valid_point;
+                quad_points[j].w = 1;
+                not_valid++;
+            }
+        }
+        if (not_valid > 0) continue;
 
-        // split along shorter diagonal, 1,4 or 2,3
+        // split along shorter diagonal, 0,3 or 1,2
         // clockwise winding order of triangles
         // outside of surface is positive
         // verts look like when facing:
@@ -90,19 +110,45 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
         Triangle tris[2];
         for (int j = 0; j < 2; j++) {
             for (int k = 0; k < 3; k++) {
-                tris[j].verts[k] = quad_points[tri_indices[j][k]];
+                tris[j].verts0 = quad_points[tri_indices[j][0]];
+                tris[j].verts1 = quad_points[tri_indices[j][1]];
+                tris[j].verts2 = quad_points[tri_indices[j][2]];
             }
         }
 
-        // _Mesh.Append(tris[0]);
-        // _Mesh.Append(tris[1]);
+        _Mesh.Append(tris[0]);
+        _Mesh.Append(tris[1]);
 
-        for (int j = 0; j < 2; j++) {
-            for (int k = 0; k < 3; k++) {
-                _Mesh.Append(tris[j].verts[k]);
-            }
-        }
+        // for (int j = 0; j < 2; j++) {
+        //     for (int k = 0; k < 3; k++) {
+        //         _Mesh.Append(tris[j].verts[k]);
+        //     }
+        // }
 
+        // _Mesh.Append(pos);
+        // float extent = 0.9;
+        // Triangle tri = (Triangle)0;
+        // tri.verts[0] = float3(0,0,0);
+        // tri.verts[1] = float3(0,extent,0);
+        // tri.verts[2] = float3(extent,extent,0);
+        // _Mesh.Append(tri);
+        // tri.verts[0] = float3(0,0,0);
+        // tri.verts[1] = float3(0,0,extent);
+        // tri.verts[2] = float3(extent,0,extent);
+        // _Mesh.Append(tri);
+        
     }
-    // _Mesh.Append(pos);
+    // float extent = 4;
+    // Triangle tri1;
+    // tri1.verts0 = float4(1,0,0, 1.0);
+    // tri1.verts1 = float4(0,extent,0, 1.0);
+    // tri1.verts2 = float4(extent,0, 0, 1.0);
+
+    // // tri1.verts1 = float3(0,extent,extent);
+    // // tri1.verts2 = float3(0,0,extent);
+    // _Mesh.Append(tri1);
+    // tri1.verts0 = float4(0,0,0, 1.0);
+    // tri1.verts1 = float4(0,extent,extent, 1.0);
+    // tri1.verts2 = float4(extent,extent, extent, 1.0);
+    // _Mesh.Append(tri1);
 }

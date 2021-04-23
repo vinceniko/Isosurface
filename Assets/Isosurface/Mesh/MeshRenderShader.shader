@@ -9,6 +9,7 @@ Shader "Custom/MeshRenderShader"
     // The SubShader block containing the Shader code. 
     SubShader
     {
+        Cull Off
         // SubShader Tags define when and under which conditions a SubShader block or
         // a pass is executed.
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline" }
@@ -21,14 +22,14 @@ Shader "Custom/MeshRenderShader"
             #pragma vertex vert
             // This line defines the name of the fragment shader. 
             #pragma fragment frag
-            #pragma target 3.5
+            // #pragma target 3.5
 
             // The Core.hlsl file contains definitions of frequently used HLSL
             // macros and functions, and also contains #include references to other
             // HLSL files (for example, Common.hlsl, SpaceTransforms.hlsl, etc.).
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"            
 
-            StructuredBuffer<float3> _Mesh;
+            StructuredBuffer<float4> _Mesh;
 
             // The structure definition defines which variables it contains.
             // This example uses the Attributes structure as an input structure in
@@ -48,7 +49,7 @@ Shader "Custom/MeshRenderShader"
                 // float3 vIdColor : TEXCOORD0;
             };
 
-            float3 getVertex(uint vid) {
+            float4 getVertex(uint vid) {
                 return _Mesh[vid];
             }           
 
@@ -62,7 +63,7 @@ Shader "Custom/MeshRenderShader"
                 // The TransformObjectToHClip function transforms vertex positions
                 // from object space to homogenous space
                 // OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.positionHCS = TransformObjectToHClip(float4(getVertex(vid), 1.0));
+                OUT.positionHCS = TransformObjectToHClip(getVertex(vid));
                 
                 // OUT.vIdColor = float3(vid / (float)7, 0, 0);
 

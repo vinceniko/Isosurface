@@ -12,11 +12,14 @@ namespace Isosurface
         ComputeShader surfacePointsShader = default;
         [SerializeField]
         ComputeShader meshShader = default;
+        [SerializeField]
+        ComputeShader fixArgs = default;
 
         
         ComputeBuffer isoValsBuffer;
         ComputeBuffer surfacePointsBuffer;
         ComputeBuffer meshBuffer;
+        ComputeBuffer meshBufferFloat;
 
 
         static readonly int 
@@ -124,7 +127,8 @@ namespace Isosurface
             argsBuffer = new ComputeBuffer(1, DrawCallArgBuffer.size, ComputeBufferType.IndirectArguments);
             int[] args = new int[] { 0, 1, 0, 0 };
             argsBuffer.SetData(args);
-            meshBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Append);
+            meshBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution * 3 /*dims*/ * 2 /*tris per dim*/, Marshal.SizeOf(typeof(Vector4)) * 3, ComputeBufferType.Append);
+            meshBufferFloat = new ComputeBuffer(maxResolution * maxResolution * maxResolution * 3 /*dims*/ * 2 /*tris per dim*/ * 3, Marshal.SizeOf(typeof(Vector4)));
         }
 
         void OnDisable()
@@ -137,6 +141,8 @@ namespace Isosurface
             argsBuffer = null;
             meshBuffer.Release();
             meshBuffer = null;
+            meshBufferFloat.Release();
+            meshBufferFloat = null;
         }
 
         void Update()
@@ -266,14 +272,28 @@ namespace Isosurface
                 
                 // Actual count in append buffer.
                 args[0] *= 1; // verts per triangle
+                // args[2] += 1; // verts per triangle
 
                 print(args[0]);
 
+
                 argsBuffer.SetData(args);
+                
+                fixArgs.SetBuffer(0, "DrawCallArgs", argsBuffer);
+                fixArgs.Dispatch(0, 1,1,1);
+
+                argsBuffer.GetData(args);
+                
+                print(args[0]);
+                
+                var verts = new Vector4[args[0]];
+                meshBuffer.GetData(verts);
+                meshBufferFloat.SetData(verts);
 
                 // if (showMesh) {
+                meshMaterial.SetPass(0);
                 meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-                meshMaterial.SetBuffer(meshId, meshBuffer);
+                meshMaterial.SetBuffer(meshId, meshBufferFloat);
 
                 Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
             }

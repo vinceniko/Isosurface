@@ -48,7 +48,7 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
 
         // add to cube_edges
         for (int j = 0; j < 4; j++) {
-            cube_edges[i * 4 + j] = dim_edges[0];
+            cube_edges[i * 4 + j] = dim_edges[j];
         }
     }
 
@@ -62,7 +62,7 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
         }
     }
 
-    if (num_edges_intersected) {
+    if (num_edges_intersected > 0) {
         float3 edge_intersections[12];
         for (int i = 0; i < num_edges_intersected; i++) {
             float3 edge_crossing = linInterpolate(edges_on_surface[i].end, edges_on_surface[i].start, _IsoVals[threeDToOneD(edges_on_surface[i].end)], _IsoVals[threeDToOneD(edges_on_surface[i].start)]);
@@ -82,7 +82,8 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
         // if at least one edge intersection
         SetSurfacePoint(id, surface_point.zyx);
     } else {
-        SetSurfacePoint(id, float3(_Resolution+1, _Resolution+1, _Resolution+1));
+        pos = transformToCenter(pos).zyx;
+        _SurfacePoints[threeDToOneD(id)] = float4(pos, 0.0);
     }
     
     // SetSurfacePoint(id, pos);
