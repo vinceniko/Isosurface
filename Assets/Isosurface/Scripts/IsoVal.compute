@@ -1,0 +1,36 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel SphereKernel
+#pragma kernel TorusKernel
+#pragma kernel PyramidKernel
+#pragma kernel OctahedronKernel
+
+#include "Common.hlsl"
+
+void SetIsoVal(uint3 id, float val) 
+{
+	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
+	if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) 
+    {
+		_IsoVals[threeDToOneD(id)] = val;
+	}
+}
+
+#define KERNEL_FUNCTION(function) \
+	[numthreads(4, 4, 4)] \
+	void function##Kernel (uint3 id: SV_DispatchThreadID) \
+    { \
+		float3 pos = GetPosSurface(id); \ // inverse operations for sdfs. grid to world goes first
+		SetIsoVal(id, function(mul(_ShapeToWorld, float4(pos, 1.0)).xyz, SHAPE_SIZE)); \
+	}
+
+// SetIsoVal(id, (id.x >= 0 && id.y >= 0 && id.z >= 0) ? -2.0 : 2.0); \ // check origin and positive axes directions
+
+// SetIsoVal(id, opUnion(function(mul(_ShapeToWorld[0], float4(uv, 1.0)).xyz, 0.5), function(mul(_ShapeToWorld[1], float4(uv, 1.0)).xyz, 0.5)));
+// SetIsoVal(id, function(uv, _ShapeSize));
+// SetIsoVal(id, function(mul(transpose(_ShapeToWorld), float4(uv, 1.0)).xyz, _ShapeSize)); 
+
+
+KERNEL_FUNCTION(Sphere)
+KERNEL_FUNCTION(Torus)
+KERNEL_FUNCTION(Pyramid)
+KERNEL_FUNCTION(Octahedron)
