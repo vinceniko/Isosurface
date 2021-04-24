@@ -1,14 +1,24 @@
-#pragma kernel SurfacePointsKernel
+#pragma kernel SphereSurfacePointsKernel
+#pragma kernel TorusSurfacePointsKernel
+#pragma kernel PyramidSurfacePointsKernel
+#pragma kernel OctahedronSurfacePointsKernel
 
 #include "Common.hlsl"
 
-void SetSurfacePoint(uint3 id, float3 val) 
+void SetNormal(uint3 id, float3 normal) 
 {
 	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
-	if (id.x < _Resolution-1 && id.y < _Resolution-1 && id.z < _Resolution-1 && 
-    id.x >= 0 && id.y >= 0 && id.z >= 0 &&
-    val.x < _Resolution && val.y < _Resolution && val.z < _Resolution &&
-    val.x >= 0 && val.y >= 0 && val.z >= 0) 
+	if (id.x < _Resolution && id.y < _Resolution && id.z < _Resolution) 
+    {
+		_Normals[threeDToOneD(id)] = float4(normal, 1.0);
+	}
+}
+
+float3 SetSurfacePoint(uint3 id, float3 val) 
+{
+	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
+	if (id.x < _Resolution-1 && id.y < _Resolution-1 && id.z < _Resolution-1 &&
+    val.x < _Resolution && val.y < _Resolution && val.z < _Resolution) 
     {
         val = transformToCenter(val);
 		_SurfacePoints[threeDToOneD(id)] = float4(val, 1.0);
@@ -16,10 +26,11 @@ void SetSurfacePoint(uint3 id, float3 val)
         val = transformToCenter(id);
         _SurfacePoints[threeDToOneD(id)] = float4(val, 0.0);
     }
+
+    return val;
 }
 
-[numthreads(4, 4, 4)]
-void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
+float3 SurfacePoints(uint3 id: SV_DispatchThreadID) {
     float3 pos = id; // cube rooted at pos
     
     Edge cube_edges[12];
@@ -84,6 +95,7 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
             float3 edge_crossing = linInterpolate(edges_on_surface[i].end, edges_on_surface[i].start, _IsoVals[threeDToOneD(edges_on_surface[i].end)], _IsoVals[threeDToOneD(edges_on_surface[i].start)]);
             // // simple avg
             // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
+            // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
             edge_intersections[i] = edge_crossing;
         }
 
@@ -95,12 +107,29 @@ void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
         }
         surface_point /= float3(count, count, count);
 
+        // // mincraft world
+        // surface_point = pos + (x_stride+y_stride+z_stride) / 2;
+
         // if at least one edge intersection
-        SetSurfacePoint(id, surface_point.zyx);
+        return SetSurfacePoint(id, surface_point.zyx);
     } else {
         pos = transformToCenter(pos).zyx;
         _SurfacePoints[threeDToOneD(id)] = float4(pos, 0.0);
+
+        return pos;
     }
     
     // SetSurfacePoint(id, pos);
 }
+
+#define KERNEL_FUNCTION(function) \
+    [numthreads(4, 4, 4)] \
+    void function##SurfacePointsKernel(uint3 id: SV_DispatchThreadID) { \
+        float3 pos = SurfacePoints(id); \
+        _Normals[threeDToOneD(id)] = float4(function##EstimateNormal(pos), 1); \
+    }
+
+KERNEL_FUNCTION(Sphere)
+KERNEL_FUNCTION(Torus)
+KERNEL_FUNCTION(Pyramid)
+KERNEL_FUNCTION(Octahedron)

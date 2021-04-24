@@ -18,6 +18,7 @@ namespace Isosurface
         
         ComputeBuffer isoValsBuffer;
         ComputeBuffer surfacePointsBuffer;
+        ComputeBuffer normalsBuffer;
         ComputeBuffer meshBuffer;
         ComputeBuffer meshBufferFloat;
 
@@ -25,6 +26,7 @@ namespace Isosurface
         static readonly int 
             isoValsId = Shader.PropertyToID("_IsoVals"),
             surfacePointsId = Shader.PropertyToID("_SurfacePoints"),
+            normalsId = Shader.PropertyToID("_Normals"),
             meshId = Shader.PropertyToID("_Mesh"),
             resolutionId = Shader.PropertyToID("_Resolution"),
             stepId = Shader.PropertyToID("_Step"),
@@ -65,7 +67,7 @@ namespace Isosurface
         Material meshMaterial = default;
 
         [SerializeField]
-        Mesh mesh = default;
+        Mesh pointMesh = default;
 
         [SerializeField, Range(0.0f, 0.99f)]
         float pointBrightness = 0.99f;
@@ -121,13 +123,16 @@ namespace Isosurface
 
         void OnEnable() 
         {
+            Mesh mesh = GetComponent<MeshFilter>().mesh;
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(float)));
             surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
+            normalsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
             
             argsBuffer = new ComputeBuffer(1, DrawCallArgBuffer.size, ComputeBufferType.IndirectArguments);
             int[] args = new int[] { 0, 1, 0, 0 };
             argsBuffer.SetData(args);
-            meshBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution * 3 /*dims*/ * 2 /*tris per dim*/, Marshal.SizeOf(typeof(Vector4)) * 3, ComputeBufferType.Append);
+            meshBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution * 3 /*dims*/ * 2 /*tris per dim*/, Marshal.SizeOf(typeof(Vector4)) * 6, ComputeBufferType.Append);
             meshBufferFloat = new ComputeBuffer(maxResolution * maxResolution * maxResolution * 3 /*dims*/ * 2 /*tris per dim*/ * 3, Marshal.SizeOf(typeof(Vector4)));
         }
 
@@ -137,6 +142,8 @@ namespace Isosurface
             isoValsBuffer = null;
             surfacePointsBuffer.Release();
             surfacePointsBuffer = null;
+            normalsBuffer.Release();
+            normalsBuffer = null;
             argsBuffer.Release();
             argsBuffer = null;
             meshBuffer.Release();
@@ -203,7 +210,7 @@ namespace Isosurface
                 transparencyMaterial.SetFloat(pointBrightnessID, pointBrightness);
                 transparencyMaterial.SetFloat(pointSizeID, pointSize);
                 
-                Graphics.DrawMeshInstancedProcedural(mesh, 0, transparencyMaterial, bounds, resolution_ * resolution_ * resolution_);
+                Graphics.DrawMeshInstancedProcedural(pointMesh, 0, transparencyMaterial, bounds, resolution_ * resolution_ * resolution_);
             }
 
             if (showVolume) {
@@ -215,16 +222,17 @@ namespace Isosurface
                 material.SetFloat(pointBrightnessID, pointBrightness);
                 material.SetFloat(pointSizeID, pointSize);
                 
-                Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution_ * resolution_ * resolution_);
+                Graphics.DrawMeshInstancedProcedural(pointMesh, 0, material, bounds, resolution_ * resolution_ * resolution_);
             }
 
             // surface points
-            int surfacePointsKernel = 0;
+            int surfacePointsKernel = kernelIndex;
             surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
             surfacePointsShader.SetFloat(stepId, step);
             surfacePointsShader.SetBuffer(surfacePointsKernel, isoValsId, isoValsBuffer);
             surfacePointsShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
+            surfacePointsShader.SetBuffer(surfacePointsKernel, normalsId, normalsBuffer);
             // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
             surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
 
@@ -239,10 +247,13 @@ namespace Isosurface
                 surfacePointMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
                 surfacePointMaterial.SetFloat(pointSizeID, pointSize);
                 surfacePointMaterial.SetBuffer(surfacePointsId, surfacePointsBuffer);
+                surfacePointMaterial.SetBuffer(normalsId, normalsBuffer);
 
-                Graphics.DrawMeshInstancedProcedural(mesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
+                Graphics.DrawMeshInstancedProcedural(pointMesh, 0, surfacePointMaterial, bounds, resolution_ * resolution_ * resolution_);
             }
 
+            Mesh mesh = GetComponent<MeshFilter>().mesh;
+            mesh.Clear();
             if (showMesh) {
                 // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
                 // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
@@ -258,7 +269,8 @@ namespace Isosurface
                 meshShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
                 meshShader.SetFloat(stepId, step);
                 meshShader.SetBuffer(meshKernel, isoValsId, isoValsBuffer);
-                meshShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
+                meshShader.SetBuffer(meshKernel, surfacePointsId, surfacePointsBuffer);
+                meshShader.SetBuffer(meshKernel, normalsId, normalsBuffer);
                 meshShader.SetBuffer(meshKernel, meshId, meshBuffer);
                 meshShader.Dispatch(meshKernel, groups, groups, groups);
 
@@ -286,16 +298,33 @@ namespace Isosurface
                 
                 print(args[0]);
                 
-                var verts = new Vector4[args[0]];
-                meshBuffer.GetData(verts);
-                meshBufferFloat.SetData(verts);
+                var meshArr = new Vector4[args[0]];
+                meshBuffer.GetData(meshArr);
+                var verts3 = new Vector3[args[0] / 2];
+                // var verts4 = new Vector4[args[0] / 2];
+                var normals3 = new Vector3[args[0] / 2];
+                for (int i = 0; i < args[0]; i+=2) {
+                    verts3[i / 2] = new Vector3(meshArr[i].x, meshArr[i].y, meshArr[i].z);
+                    // verts4[i / 2] = meshArr[i];
+                    normals3[i / 2] = new Vector3(meshArr[i+1].x, meshArr[i+1].y, meshArr[i+1].z);
+                }
+                mesh.vertices = verts3;
+                mesh.normals = normals3;
+                var tris = new int[verts3.Length];
+                for (int i = 0; i < verts3.Length; i++) {
+                    tris[i] = i;
+                }
+                mesh.triangles = tris;
+                // meshBufferFloat.SetData(verts4);
 
-                // if (showMesh) {
-                meshMaterial.SetPass(0);
-                meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
-                meshMaterial.SetBuffer(meshId, meshBufferFloat);
+                // // if (showMesh) {
+                // meshMaterial.SetPass(0);
+                // meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+                // meshMaterial.SetBuffer(meshId, meshBufferFloat);
 
-                Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
+                // Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
+
+                
             }
         }
 

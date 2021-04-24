@@ -1,8 +1,8 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel SphereKernel
-#pragma kernel TorusKernel
-#pragma kernel PyramidKernel
-#pragma kernel OctahedronKernel
+#pragma kernel SphereIsoValKernel
+#pragma kernel TorusIsoValKernel
+#pragma kernel PyramidIsoValKernel
+#pragma kernel OctahedronIsoValKernel
 
 #include "Common.hlsl"
 
@@ -17,7 +17,7 @@ void SetIsoVal(uint3 id, float val)
 
 #define KERNEL_FUNCTION(function) \
 	[numthreads(4, 4, 4)] \
-	void function##Kernel (uint3 id: SV_DispatchThreadID) \
+	void function##IsoValKernel (uint3 id: SV_DispatchThreadID) \
     { \
 		float3 pos = GetPosSurface(id); \ // inverse operations for sdfs. grid to world goes first
 		SetIsoVal(id, function(mul(_ShapeToWorld, float4(pos, 1.0)).xyz, SHAPE_SIZE)); \

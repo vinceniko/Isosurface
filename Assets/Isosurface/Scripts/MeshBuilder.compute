@@ -4,8 +4,11 @@
 
 struct Triangle {
     float4 verts0;
+    float4 normals0;
     float4 verts1;
+    float4 normals1;
     float4 verts2;
+    float4 normals2;
 };
 
 AppendStructuredBuffer<Triangle> _Mesh;
@@ -47,11 +50,14 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
 
         // get quad along axis
         float4 quad_points[4];
+        float4 normals[4];
         // root
         quad_points[0] = _SurfacePoints[threeDToOneD(pos)];
+        normals[0] = _Normals[threeDToOneD(pos)];
         // horizontal, vertical
         for (int j = 0; j < 2; j++) {
             quad_points[j+1] = _SurfacePoints[threeDToOneD(pos + dim_offsets[other_dims[j]])];
+            normals[j+1] = _Normals[threeDToOneD(pos + dim_offsets[other_dims[j]])];
         }
         // diagonal
         float3 diag_offset = float3(0,0,0);
@@ -59,6 +65,7 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
             diag_offset += dim_offsets[other_dims[j]];
         }
         quad_points[3] = _SurfacePoints[threeDToOneD(pos + diag_offset)];
+        normals[3] = _Normals[threeDToOneD(pos + diag_offset)];
 
         // TODO: iterate through all quad_points and find one that is valid, and set invalid ones to the valid one
         float4 valid_point;
@@ -88,7 +95,13 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
         // 0 1
 
         int3 tri_indices[2];
-        bool facing_inside = axis_edge.start > 0;
+        bool facing_inside = _IsoVals[threeDToOneD(axis_edge.end)] > _IsoVals[threeDToOneD(axis_edge.start)];
+        // float3 dir = facing_inside ? axis_edge.start - axis_edge.end : axis_edge.start - axis_edge.end;
+        // facing_inside = dot(facing_inside ? axis_edge.end - axis_edge.start : axis_edge.start - axis_edge.end, normalize(normals[0] + normals[1] + normals[2])) > 0;
+        // bool facing_inside = axis_edge.end > axis_edge.start > 0 ? false : axis_edge.end > 0 && axis_edge.start < 0 ? true : false;
+        if (i == 1) {
+            facing_inside = !facing_inside;
+        }
         if (facing_inside) {
             if (length(quad_points[3] - quad_points[0]) < length(quad_points[2] - quad_points[1])) { // split along shorter diag
                 tri_indices[0] = int3(0,2,3);
@@ -113,6 +126,10 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
                 tris[j].verts0 = quad_points[tri_indices[j][0]];
                 tris[j].verts1 = quad_points[tri_indices[j][1]];
                 tris[j].verts2 = quad_points[tri_indices[j][2]];
+
+                tris[j].normals0 = normals[tri_indices[j][0]];
+                tris[j].normals1 = normals[tri_indices[j][1]];
+                tris[j].normals2 = normals[tri_indices[j][2]];
             }
         }
 

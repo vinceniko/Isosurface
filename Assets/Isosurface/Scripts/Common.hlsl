@@ -2,6 +2,7 @@ uint _Resolution;
 float4x4 _GridToWorld;
 float _Step;
 RWStructuredBuffer<float> _IsoVals;
+RWStructuredBuffer<float4> _Normals;
 RWStructuredBuffer<float4> _SurfacePoints;
 float4x4 _ShapeToWorld;
 
@@ -95,8 +96,8 @@ float Octahedron(float3 p, float s)
   return length(float3(q.x,q.y-s+k,q.z-k)); 
 }
 
-#define epsilon 0.0001
-#define ESTIMATE_NORMAL(function) \
+#define epsilon 0.01
+#define KERNEL_FUNCTION(function) \
   float3 function##EstimateNormal(float3 p) { \
     float x = function(float3(p.x+epsilon,p.y,p.z), SHAPE_SIZE) - function(float3(p.x-epsilon,p.y,p.z), SHAPE_SIZE); \
     float y = function(float3(p.x,p.y+epsilon,p.z), SHAPE_SIZE) - function(float3(p.x,p.y-epsilon,p.z), SHAPE_SIZE); \
@@ -104,7 +105,7 @@ float Octahedron(float3 p, float s)
     return normalize(float3(x,y,z)); \
   }
 
-ESTIMATE_NORMAL(Sphere)
-ESTIMATE_NORMAL(Torus)
-ESTIMATE_NORMAL(Pyramid)
-ESTIMATE_NORMAL(Octahedron)
+KERNEL_FUNCTION(Sphere)
+KERNEL_FUNCTION(Torus)
+KERNEL_FUNCTION(Pyramid)
+KERNEL_FUNCTION(Octahedron)
