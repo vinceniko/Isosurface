@@ -19,5 +19,20 @@ namespace Isosurface
             var choice = (FunctionName)Random.Range(1, functionLength);
             return choice == name ? 0 : choice;
         }
+
+        public static string GetName(FunctionName name) {
+            switch (name) {
+                case FunctionName.Sphere:
+                    return "SPHERE";
+                case FunctionName.Torus:
+                    return "TORUS";
+                case FunctionName.Pyramid:
+                    return "PYRAMID";
+                case FunctionName.Octahedron:
+                    return "OCTAHEDRON";
+                default:
+                    return "";
+            }
+        }
     }
 }

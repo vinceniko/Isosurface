@@ -1,9 +1,29 @@
+#pragma multi_compile_local SPHERE TORUS PYRAMID OCTAHEDRON
+
 #pragma kernel SphereSurfacePointsKernel
 #pragma kernel TorusSurfacePointsKernel
 #pragma kernel PyramidSurfacePointsKernel
 #pragma kernel OctahedronSurfacePointsKernel
 
 #include "Common.hlsl"
+#include "qef.hlsl"
+
+#if defined(SPHERE)
+ #define FUNCTION Sphere
+# elif defined(TORUS)
+ #define FUNCTION Torus
+# elif defined(PYRAMID)
+ #define FUNCTION Pyramid
+# elif defined(OCTAHEDRON)
+ #define FUNCTION Octahedron
+#endif
+
+float3 EstimateNormal(float3 p) {
+  float x = FUNCTION(float3(p.x+epsilon,p.y,p.z), SHAPE_SIZE) - FUNCTION(float3(p.x-epsilon,p.y,p.z), SHAPE_SIZE); 
+  float y = FUNCTION(float3(p.x,p.y+epsilon,p.z), SHAPE_SIZE) - FUNCTION(float3(p.x,p.y-epsilon,p.z), SHAPE_SIZE); 
+  float z = FUNCTION(float3(p.x,p.y,p.z+epsilon), SHAPE_SIZE) - FUNCTION(float3(p.x,p.y,p.z-epsilon), SHAPE_SIZE); 
+  return normalize(float3(x,y,z)); 
+}
 
 void SetNormal(uint3 id, float3 normal) 
 {
@@ -18,7 +38,8 @@ float3 SetSurfacePoint(uint3 id, float3 val)
 {
 	// id = mul(_ShapeToWorld, float4(id.zyx, 1.0)).xyz;
 	if (id.x < _Resolution-1 && id.y < _Resolution-1 && id.z < _Resolution-1 &&
-    val.x < _Resolution && val.y < _Resolution && val.z < _Resolution) 
+    val.x < _Resolution && val.y < _Resolution && val.z < _Resolution &&
+    val.x >= 0 && val.y >= 0 && val.z >= 0) 
     {
         val = transformToCenter(val);
 		_SurfacePoints[threeDToOneD(id)] = float4(val, 1.0);
@@ -90,6 +111,11 @@ float3 SurfacePoints(uint3 id: SV_DispatchThreadID) {
     }
 
     if (num_edges_intersected > 0) {
+        float4 pointaccum = float4(0, 0, 0, 0);
+		mat3x3_tri ATA = { 0, 0, 0, 0, 0, 0 };
+		float4 Atb = float4(0, 0, 0, 0);
+        float btb = 0;
+
         float3 edge_intersections[12];
         for (int i = 0; i < num_edges_intersected; i++) {
             float3 edge_crossing = linInterpolate(edges_on_surface[i].end, edges_on_surface[i].start, _IsoVals[threeDToOneD(edges_on_surface[i].end)], _IsoVals[threeDToOneD(edges_on_surface[i].start)]);
@@ -97,15 +123,29 @@ float3 SurfacePoints(uint3 id: SV_DispatchThreadID) {
             // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
             // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
             edge_intersections[i] = edge_crossing;
+            float3 normal = EstimateNormal(edge_crossing);
+            qef_add(float4(normal, 0.0), float4(edge_crossing, 0.0), ATA, Atb, pointaccum, btb);
         }
+        // qef_add(PyramidEstimateNormal(pos + (x_stride+y_stride+z_stride) / 2), pos + (x_stride+y_stride+z_stride) / 2, ATA, Atb, pointaccum);
 
-        float3 surface_point = float3(0.0, 0.0, 0.0);
-        int count = 0;
-        for (int i = 0; i < num_edges_intersected; i++) {
-            surface_point += edge_intersections[i];
-            count++;
+        float4 surface_point_ = float4(0.0, 0.0, 0.0, 1.0);
+        float3 com = float3(pointaccum.x, pointaccum.y, pointaccum.z) / pointaccum.w;
+        float error = qef_solve(ATA, Atb, pointaccum, surface_point_);
+        float3 surface_point = surface_point_.xyz;
+        float3 Min = pos;
+        float3 Max = pos + float3(1.0f, 1.0f, 1.0f);
+        if (surface_point.x < Min.x || surface_point.x > Max.x ||
+            surface_point.y < Min.y || surface_point.y > Max.y ||
+            surface_point.z < Min.z || surface_point.z > Max.z)
+        {
+            surface_point = com;
         }
-        surface_point /= float3(count, count, count);
+        // int count = 0;
+        // for (int i = 0; i < num_edges_intersected; i++) {
+        //     surface_point += edge_intersections[i];
+        //     count++;
+        // }
+        // surface_point /= float3(count, count, count);
 
         // // mincraft world
         // surface_point = pos + (x_stride+y_stride+z_stride) / 2;

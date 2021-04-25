@@ -233,8 +233,10 @@ namespace Isosurface
             surfacePointsShader.SetBuffer(surfacePointsKernel, isoValsId, isoValsBuffer);
             surfacePointsShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
             surfacePointsShader.SetBuffer(surfacePointsKernel, normalsId, normalsBuffer);
+            surfacePointsShader.EnableKeyword(FunctionLibrary.GetName(function));
             // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
             surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
+            surfacePointsShader.DisableKeyword(FunctionLibrary.GetName(function));
 
             // var data = new Vector3[resolution_*resolution_*resolution_];
             // surfacePointsBuffer.GetData(data);
