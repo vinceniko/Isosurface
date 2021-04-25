@@ -73,8 +73,12 @@ namespace Isosurface
         float pointBrightness = 0.99f;
 
         [SerializeField]
-        FunctionLibrary.FunctionName function = FunctionLibrary.FunctionName.Sphere;
+        FunctionLibrary.FunctionName shapeFunction = FunctionLibrary.FunctionName.Sphere;
 
+        enum SurfacePointsFunc { QEF, Centroid, Block }
+
+        [SerializeField]
+        SurfacePointsFunc surfacePointsFunc = SurfacePointsFunc.Centroid;
 
         [SerializeField]
         bool showGrid = true;
@@ -120,6 +124,19 @@ namespace Isosurface
         // {
         //     transform.position = Vector3.one * (-size * 0.5f + size / resolution);
         // }
+
+        static string GetSurfacePointsFuncName(SurfacePointsFunc surfacePointsFunc) {
+            switch (surfacePointsFunc) {
+                case SurfacePointsFunc.QEF:
+                    return "SURFACE_POINT_QEF";
+                case SurfacePointsFunc.Centroid:
+                    return "SURFACE_POINT_CENTROID";
+                case SurfacePointsFunc.Block:
+                    return "SURFACE_POINT_BLOCKY";
+                default:
+                    return "";
+            }
+        }
 
         void OnEnable() 
         {
@@ -167,7 +184,7 @@ namespace Isosurface
             // {
             //     duration -= functionDuration;
             //     transitioning = true;
-            //     transitionFunction = function;
+            //     transitionFunction = shapeFunction;
             //     PickNextFunction();
             // }
 
@@ -191,13 +208,12 @@ namespace Isosurface
             isoValsShader.SetFloat(timeId, Time.time);
             isoValsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
             isoValsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix.inverse).ToArray());
-
-            var kernelIndex = (int)function;
-            // var kernelIndex = 1;
-            isoValsShader.SetBuffer(kernelIndex, isoValsId, isoValsBuffer);
+            isoValsShader.SetBuffer(0, isoValsId, isoValsBuffer);
 
             int groups = Mathf.CeilToInt(resolution_ / 4f);
-            isoValsShader.Dispatch(kernelIndex, groups, groups, groups);
+            isoValsShader.EnableKeyword(FunctionLibrary.GetName(shapeFunction));
+            isoValsShader.Dispatch(0, groups, groups, groups);
+            isoValsShader.DisableKeyword(FunctionLibrary.GetName(shapeFunction));
                 
             var bounds = new Bounds(Vector3.zero, Vector3.one * (size + step));
 
@@ -226,17 +242,18 @@ namespace Isosurface
             }
 
             // surface points
-            int surfacePointsKernel = kernelIndex;
             surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
             surfacePointsShader.SetFloat(stepId, step);
-            surfacePointsShader.SetBuffer(surfacePointsKernel, isoValsId, isoValsBuffer);
-            surfacePointsShader.SetBuffer(surfacePointsKernel, surfacePointsId, surfacePointsBuffer);
-            surfacePointsShader.SetBuffer(surfacePointsKernel, normalsId, normalsBuffer);
-            surfacePointsShader.EnableKeyword(FunctionLibrary.GetName(function));
+            surfacePointsShader.SetBuffer(0, isoValsId, isoValsBuffer);
+            surfacePointsShader.SetBuffer(0, surfacePointsId, surfacePointsBuffer);
+            surfacePointsShader.SetBuffer(0, normalsId, normalsBuffer);
+            surfacePointsShader.EnableKeyword(FunctionLibrary.GetName(shapeFunction));
+            surfacePointsShader.EnableKeyword(GetSurfacePointsFuncName(surfacePointsFunc));
             // surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix).ToArray());
-            surfacePointsShader.Dispatch(surfacePointsKernel, groups, groups, groups);
-            surfacePointsShader.DisableKeyword(FunctionLibrary.GetName(function));
+            surfacePointsShader.Dispatch(0, groups, groups, groups);
+            surfacePointsShader.DisableKeyword(FunctionLibrary.GetName(shapeFunction));
+            surfacePointsShader.DisableKeyword(GetSurfacePointsFuncName(surfacePointsFunc));
 
             // var data = new Vector3[resolution_*resolution_*resolution_];
             // surfacePointsBuffer.GetData(data);
@@ -274,7 +291,9 @@ namespace Isosurface
                 meshShader.SetBuffer(meshKernel, surfacePointsId, surfacePointsBuffer);
                 meshShader.SetBuffer(meshKernel, normalsId, normalsBuffer);
                 meshShader.SetBuffer(meshKernel, meshId, meshBuffer);
+                meshShader.EnableKeyword(FunctionLibrary.GetName(shapeFunction));
                 meshShader.Dispatch(meshKernel, groups, groups, groups);
+                meshShader.DisableKeyword(FunctionLibrary.GetName(shapeFunction));
 
                 // Copy the count.
                 ComputeBuffer.CopyCount(meshBuffer, argsBuffer, 0);
@@ -332,9 +351,9 @@ namespace Isosurface
 
         // void PickNextFunction()
         // {
-        //     function = transitionMode == TransitionMode.Cycle ?
-        //         FunctionLibrary.GetNextFunctionName(function) :
-        //         FunctionLibrary.GetRandomFunctionNameOtherThan(function);
+        //     shapeFunction = transitionMode == TransitionMode.Cycle ?
+        //         FunctionLibrary.GetNextFunctionName(shapeFunction) :
+        //         FunctionLibrary.GetRandomFunctionNameOtherThan(shapeFunction);
         // }
     }
 }

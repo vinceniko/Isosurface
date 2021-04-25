@@ -1,3 +1,15 @@
+#pragma multi_compile SPHERE TORUS PYRAMID OCTAHEDRON
+
+#if defined(SPHERE)
+ #define FUNCTION Sphere
+# elif defined(TORUS)
+ #define FUNCTION Torus
+# elif defined(PYRAMID)
+ #define FUNCTION Pyramid
+# elif defined(OCTAHEDRON)
+ #define FUNCTION Octahedron
+#endif
+
 uint _Resolution;
 float4x4 _GridToWorld;
 float _Step;
@@ -96,16 +108,10 @@ float Octahedron(float3 p, float s)
   return length(float3(q.x,q.y-s+k,q.z-k)); 
 }
 
-#define epsilon 0.01
-#define KERNEL_FUNCTION(function) \
-  float3 function##EstimateNormal(float3 p) { \
-    float x = function(float3(p.x+epsilon,p.y,p.z), SHAPE_SIZE) - function(float3(p.x-epsilon,p.y,p.z), SHAPE_SIZE); \
-    float y = function(float3(p.x,p.y+epsilon,p.z), SHAPE_SIZE) - function(float3(p.x,p.y-epsilon,p.z), SHAPE_SIZE); \
-    float z = function(float3(p.x,p.y,p.z+epsilon), SHAPE_SIZE) - function(float3(p.x,p.y,p.z-epsilon), SHAPE_SIZE); \
-    return normalize(float3(x,y,z)); \
-  }
-
-KERNEL_FUNCTION(Sphere)
-KERNEL_FUNCTION(Torus)
-KERNEL_FUNCTION(Pyramid)
-KERNEL_FUNCTION(Octahedron)
+#define EPSILON 0.01
+float3 EstimateNormal(float3 p) {
+  float x = FUNCTION(float3(p.x+EPSILON,p.y,p.z), SHAPE_SIZE) - FUNCTION(float3(p.x-EPSILON,p.y,p.z), SHAPE_SIZE); 
+  float y = FUNCTION(float3(p.x,p.y+EPSILON,p.z), SHAPE_SIZE) - FUNCTION(float3(p.x,p.y-EPSILON,p.z), SHAPE_SIZE); 
+  float z = FUNCTION(float3(p.x,p.y,p.z+EPSILON), SHAPE_SIZE) - FUNCTION(float3(p.x,p.y,p.z-EPSILON), SHAPE_SIZE); 
+  return normalize(float3(x,y,z)); 
+}
