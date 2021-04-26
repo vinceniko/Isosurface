@@ -244,6 +244,7 @@ namespace Isosurface
             // surface points
             surfacePointsShader.SetInt(resolutionId, resolution_);
             surfacePointsShader.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
+            surfacePointsShader.SetMatrixArray(shapeToWorldID, shape.Select(v => v.transform.localToWorldMatrix.inverse).ToArray());
             surfacePointsShader.SetFloat(stepId, step);
             surfacePointsShader.SetBuffer(0, isoValsId, isoValsBuffer);
             surfacePointsShader.SetBuffer(0, surfacePointsId, surfacePointsBuffer);
@@ -318,12 +319,14 @@ namespace Isosurface
                 argsBuffer.GetData(args);
                 
                 print(args[0]);
+
+                args[0] *= 2;
                 
                 var meshArr = new Vector4[args[0]];
                 meshBuffer.GetData(meshArr);
-                var verts3 = new Vector3[args[0] / 2];
-                // var verts4 = new Vector4[args[0] / 2];
-                var normals3 = new Vector3[args[0] / 2];
+                var verts3 = new Vector3[args[0]];
+                // var verts4 = new Vector4[args[0]];
+                var normals3 = new Vector3[args[0]];
                 for (int i = 0; i < args[0]; i+=2) {
                     verts3[i / 2] = new Vector3(meshArr[i].x, meshArr[i].y, meshArr[i].z);
                     // verts4[i / 2] = meshArr[i];

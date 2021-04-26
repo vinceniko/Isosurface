@@ -5,7 +5,7 @@ namespace Isosurface
 {
     public static class FunctionLibrary
     {
-        public enum FunctionName { Sphere, Torus, Pyramid, Octahedron }
+        public enum FunctionName { Sphere, Torus, Pyramid, Octahedron, Box, Noise }
 
         static int functionLength = 4;
 
@@ -30,6 +30,10 @@ namespace Isosurface
                     return "PYRAMID";
                 case FunctionName.Octahedron:
                     return "OCTAHEDRON";
+                case FunctionName.Box:
+                    return "BOX";
+                case FunctionName.Noise:
+                    return "NOISE";
                 default:
                     return "";
             }

@@ -17,6 +17,9 @@ namespace Isosurface
         bool sineAnimate = true;
 
         [SerializeField]
+        float offset = 0f;
+
+        [SerializeField]
         int rotationAngles = 20;
 
         float duration;
@@ -38,6 +41,7 @@ namespace Isosurface
                 transform.localScale = Vector3.one * shapeSize * 2f;
             }
 
+            transform.Translate(new Vector3(offset * Time.deltaTime, 0f, 0f), Space.World);
             transform.Rotate(new Vector3(0f, rotationAngles * Time.deltaTime, 0f), Space.World);
             // grid.shapeSize = shapeSize;
             // grid.shapeToWorld = transform.localToWorldMatrix;

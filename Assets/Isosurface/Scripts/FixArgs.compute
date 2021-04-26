@@ -13,6 +13,6 @@ RWStructuredBuffer <DrawCallArgsBuffer> DrawCallArgs;
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    DrawCallArgs[0].vertexCountPerInstance *= 6;
+    DrawCallArgs[0].vertexCountPerInstance *= 3;
     // DrawCallArgs[0].startVertexLocation += 1;
 }
