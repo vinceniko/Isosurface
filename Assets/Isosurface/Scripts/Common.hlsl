@@ -185,6 +185,10 @@ float4x4 inverse(float4x4 m) {
     return ret;
 }
 
+float3 transformPoint(float3 p) {
+  return mul(_ShapeToWorld, float4(transformToCenter(p), 1)).xyz;
+}
+
 #define EPSILON 0.0001
 float3 EstimateNormal(float3 p) {
   // p = mul(_ShapeToWorld, float4(p, 1)).xyz;

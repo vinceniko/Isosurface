@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Isosurface 
+namespace Isosurface
 {
     public class GPUGrid : MonoBehaviour
     {
@@ -15,7 +15,7 @@ namespace Isosurface
         [SerializeField]
         ComputeShader fixArgs = default;
 
-        
+
         ComputeBuffer isoValsBuffer;
         ComputeBuffer surfacePointsBuffer;
         ComputeBuffer normalsBuffer;
@@ -23,7 +23,7 @@ namespace Isosurface
         ComputeBuffer meshBufferFloat;
 
 
-        static readonly int 
+        static readonly int
             isoValsId = Shader.PropertyToID("_IsoVals"),
             surfacePointsId = Shader.PropertyToID("_SurfacePoints"),
             normalsId = Shader.PropertyToID("_Normals"),
@@ -38,7 +38,7 @@ namespace Isosurface
             pointSizeID = Shader.PropertyToID("_PointSize"),
             shapeToWorldID = Shader.PropertyToID("_ShapeToWorld");
 
-        
+
         [SerializeField]
         SDFShape[] shape;
 
@@ -105,28 +105,10 @@ namespace Isosurface
             public int startInstanceLocation;
         }
 
-
-        // public enum TransitionMode { Cycle, Random }
-
-        // [SerializeField]
-        // TransitionMode transitionMode = TransitionMode.Cycle;
-
-        // [SerializeField, Min(0f)]
-        // float functionDuration = 1f, transitionDuration = 1f;
-
-        // float duration;
-
-        // bool transitioning;
-
-        // FunctionLibrary.FunctionName transitionFunction;
-
-        // void Awake() 
-        // {
-        //     transform.position = Vector3.one * (-size * 0.5f + size / resolution);
-        // }
-
-        static string GetSurfacePointsFuncName(SurfacePointsFunc surfacePointsFunc) {
-            switch (surfacePointsFunc) {
+        static string GetSurfacePointsFuncName(SurfacePointsFunc surfacePointsFunc)
+        {
+            switch (surfacePointsFunc)
+            {
                 case SurfacePointsFunc.QEF:
                     return "SURFACE_POINT_QEF";
                 case SurfacePointsFunc.Centroid:
@@ -138,14 +120,14 @@ namespace Isosurface
             }
         }
 
-        void OnEnable() 
+        void OnEnable()
         {
             Mesh mesh = GetComponent<MeshFilter>().mesh;
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             isoValsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(float)));
             surfacePointsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
             normalsBuffer = new ComputeBuffer(maxResolution * maxResolution * maxResolution, Marshal.SizeOf(typeof(Vector4)));
-            
+
             argsBuffer = new ComputeBuffer(1, DrawCallArgBuffer.size, ComputeBufferType.IndirectArguments);
             int[] args = new int[] { 0, 1, 0, 0 };
             argsBuffer.SetData(args);
@@ -171,29 +153,11 @@ namespace Isosurface
 
         void Update()
         {
-            // duration += Time.deltaTime;
-            // if (transitioning)
-            // {
-            //     if (duration >= transitionDuration)
-            //     {
-            //         duration -= transitionDuration;
-            //         transitioning = false;
-            //     }
-            // }
-            // else if (duration >= functionDuration)
-            // {
-            //     duration -= functionDuration;
-            //     transitioning = true;
-            //     transitionFunction = shapeFunction;
-            //     PickNextFunction();
-            // }
-
-            // shapeSize = (int)(shape.transform.localScale.x / 2f);
-
             UpdateFunctionOnGPU();
         }
 
-        void UpdateFunctionOnGPU () {
+        void UpdateFunctionOnGPU()
+        {
             int resolution_ = resolution / 4;
             resolution_ *= 4;
 
@@ -214,10 +178,11 @@ namespace Isosurface
             isoValsShader.EnableKeyword(FunctionLibrary.GetName(shapeFunction));
             isoValsShader.Dispatch(0, groups, groups, groups);
             isoValsShader.DisableKeyword(FunctionLibrary.GetName(shapeFunction));
-                
+
             var bounds = new Bounds(Vector3.zero, Vector3.one * (size + step));
 
-            if (showGrid) {
+            if (showGrid)
+            {
                 transparencyMaterial.SetBuffer(isoValsId, isoValsBuffer);
                 transparencyMaterial.SetFloat(stepId, step);
                 transparencyMaterial.SetInt(resolutionId, resolution_);
@@ -225,11 +190,12 @@ namespace Isosurface
                 transparencyMaterial.SetVector(viewDirID, -Camera.main.transform.forward);
                 transparencyMaterial.SetFloat(pointBrightnessID, pointBrightness);
                 transparencyMaterial.SetFloat(pointSizeID, pointSize);
-                
+
                 Graphics.DrawMeshInstancedProcedural(pointMesh, 0, transparencyMaterial, bounds, resolution_ * resolution_ * resolution_);
             }
 
-            if (showVolume) {
+            if (showVolume)
+            {
                 material.SetBuffer(isoValsId, isoValsBuffer);
                 material.SetFloat(stepId, step);
                 material.SetInt(resolutionId, resolution_);
@@ -237,7 +203,7 @@ namespace Isosurface
                 material.SetVector(viewDirID, -Camera.main.transform.forward);
                 material.SetFloat(pointBrightnessID, pointBrightness);
                 material.SetFloat(pointSizeID, pointSize);
-                
+
                 Graphics.DrawMeshInstancedProcedural(pointMesh, 0, material, bounds, resolution_ * resolution_ * resolution_);
             }
 
@@ -260,7 +226,8 @@ namespace Isosurface
             // surfacePointsBuffer.GetData(data);
             // print(data[10]);
 
-            if (showSurface) {
+            if (showSurface)
+            {
                 surfacePointMaterial.SetFloat(stepId, step);
                 surfacePointMaterial.SetInt(resolutionId, resolution_);
                 surfacePointMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
@@ -274,13 +241,8 @@ namespace Isosurface
 
             Mesh mesh = GetComponent<MeshFilter>().mesh;
             mesh.Clear();
-            if (showMesh) {
-                // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
-                // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
-                // https://samdriver.xyz/article/compute-shader-intro
-                // https://cyangamedev.wordpress.com/2020/06/05/urp-shader-code/
-                // https://gist.github.com/phi-lira/225cd7c5e8545be602dca4eb5ed111ba
-
+            if (showMesh)
+            {
                 // construct mesh
                 meshBuffer.SetCounterValue(0);
 
@@ -298,12 +260,12 @@ namespace Isosurface
 
                 // Copy the count.
                 ComputeBuffer.CopyCount(meshBuffer, argsBuffer, 0);
-                
+
                 // TODO: do not retrieve from GPU. write a compute shader to adjust count: https://gist.github.com/DuncanF/353509dd397ea5f292fa52d1b9b5133d
                 // Retrieve it into array.
                 int[] args = new int[4];
                 argsBuffer.GetData(args);
-                
+
                 // Actual count in append buffer.
                 args[0] *= 1; // verts per triangle
                 // args[2] += 1; // verts per triangle
@@ -312,33 +274,42 @@ namespace Isosurface
 
 
                 argsBuffer.SetData(args);
-                
+
                 fixArgs.SetBuffer(0, "DrawCallArgs", argsBuffer);
-                fixArgs.Dispatch(0, 1,1,1);
+                fixArgs.Dispatch(0, 1, 1, 1);
 
                 argsBuffer.GetData(args);
-                
+
                 print(args[0]);
 
                 args[0] *= 2;
-                
+
                 var meshArr = new Vector4[args[0]];
                 meshBuffer.GetData(meshArr);
                 var verts3 = new Vector3[args[0]];
                 // var verts4 = new Vector4[args[0]];
                 var normals3 = new Vector3[args[0]];
-                for (int i = 0; i < args[0]; i+=2) {
+                for (int i = 0; i < args[0]; i += 2)
+                {
                     verts3[i / 2] = new Vector3(meshArr[i].x, meshArr[i].y, meshArr[i].z);
                     // verts4[i / 2] = meshArr[i];
-                    normals3[i / 2] = new Vector3(meshArr[i+1].x, meshArr[i+1].y, meshArr[i+1].z);
+                    normals3[i / 2] = new Vector3(meshArr[i + 1].x, meshArr[i + 1].y, meshArr[i + 1].z);
                 }
                 mesh.vertices = verts3;
                 mesh.normals = normals3;
                 var tris = new int[verts3.Length];
-                for (int i = 0; i < verts3.Length; i++) {
+                for (int i = 0; i < verts3.Length; i++)
+                {
                     tris[i] = i;
                 }
                 mesh.triangles = tris;
+
+                // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
+                // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
+                // https://samdriver.xyz/article/compute-shader-intro
+                // https://cyangamedev.wordpress.com/2020/06/05/urp-shader-code/
+                // https://gist.github.com/phi-lira/225cd7c5e8545be602dca4eb5ed111ba
+
                 // meshBufferFloat.SetData(verts4);
 
                 // // if (showMesh) {
@@ -346,17 +317,8 @@ namespace Isosurface
                 // meshMaterial.SetMatrix(gridToWorldID, this.transform.localToWorldMatrix);
                 // meshMaterial.SetBuffer(meshId, meshBufferFloat);
 
-                // Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);
-
-                
+                // Graphics.DrawProceduralIndirect(meshMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, UnityEngine.Rendering.ShadowCastingMode.On, true);                
             }
         }
-
-        // void PickNextFunction()
-        // {
-        //     shapeFunction = transitionMode == TransitionMode.Cycle ?
-        //         FunctionLibrary.GetNextFunctionName(shapeFunction) :
-        //         FunctionLibrary.GetRandomFunctionNameOtherThan(shapeFunction);
-        // }
     }
 }

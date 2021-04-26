@@ -96,9 +96,7 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
 
         int3 tri_indices[2];
         bool facing_inside = _IsoVals[threeDToOneD(axis_edge.end)] > _IsoVals[threeDToOneD(axis_edge.start)];
-        // float3 dir = facing_inside ? axis_edge.start - axis_edge.end : axis_edge.start - axis_edge.end;
-        // facing_inside = dot(facing_inside ? axis_edge.end - axis_edge.start : axis_edge.start - axis_edge.end, normalize(normals[0] + normals[1] + normals[2])) > 0;
-        // bool facing_inside = axis_edge.end > axis_edge.start > 0 ? false : axis_edge.end > 0 && axis_edge.start < 0 ? true : false;
+        // y axis direction is flipped orientation
         if (i == 1) {
             facing_inside = !facing_inside;
         }
@@ -135,37 +133,5 @@ void MeshBuilderKernel(uint3 id: SV_DispatchThreadID) {
 
         _Mesh.Append(tris[0]);
         _Mesh.Append(tris[1]);
-
-        // for (int j = 0; j < 2; j++) {
-        //     for (int k = 0; k < 3; k++) {
-        //         _Mesh.Append(tris[j].verts[k]);
-        //     }
-        // }
-
-        // _Mesh.Append(pos);
-        // float extent = 0.9;
-        // Triangle tri = (Triangle)0;
-        // tri.verts[0] = float3(0,0,0);
-        // tri.verts[1] = float3(0,extent,0);
-        // tri.verts[2] = float3(extent,extent,0);
-        // _Mesh.Append(tri);
-        // tri.verts[0] = float3(0,0,0);
-        // tri.verts[1] = float3(0,0,extent);
-        // tri.verts[2] = float3(extent,0,extent);
-        // _Mesh.Append(tri);
-        
     }
-    // float extent = 4;
-    // Triangle tri1;
-    // tri1.verts0 = float4(1,0,0, 1.0);
-    // tri1.verts1 = float4(0,extent,0, 1.0);
-    // tri1.verts2 = float4(extent,0, 0, 1.0);
-
-    // // tri1.verts1 = float3(0,extent,extent);
-    // // tri1.verts2 = float3(0,0,extent);
-    // _Mesh.Append(tri1);
-    // tri1.verts0 = float4(0,0,0, 1.0);
-    // tri1.verts1 = float4(0,extent,extent, 1.0);
-    // tri1.verts2 = float4(extent,extent, extent, 1.0);
-    // _Mesh.Append(tri1);
 }
