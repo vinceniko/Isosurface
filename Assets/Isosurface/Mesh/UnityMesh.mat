@@ -77,8 +77,24 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Triplanar_2c44e04d605d44cf9b0ce6341ca73d69_Texture_1:
+        m_Texture: {fileID: 2800000, guid: d28a82e8b6440cd4490d09994475961c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Triplanar_373e96d7dd7041d3a70ed7462c94ab68_Texture_1:
+        m_Texture: {fileID: 2800000, guid: a7990e59a35deb14693f4390b1c8d0ed, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Triplanar_5bd50cc657824542b6294d6a159ee9d8_Texture_1:
         m_Texture: {fileID: 10309, guid: 0000000000000000f000000000000000, type: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Triplanar_a66570e36d7d4862a815c3a7289ce9df_Texture_1:
+        m_Texture: {fileID: 2800000, guid: 94cea17505ce2934d9cfe5ab575e2288, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Triplanar_ff4fb4ea36d64889a503b8a18afb6ab7_Texture_1:
+        m_Texture: {fileID: 2800000, guid: 2f1fbc26a6241364c99de402a6b3a75e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:

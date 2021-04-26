@@ -270,17 +270,12 @@ namespace Isosurface
                 args[0] *= 1; // verts per triangle
                 // args[2] += 1; // verts per triangle
 
-                print(args[0]);
-
-
                 argsBuffer.SetData(args);
 
                 fixArgs.SetBuffer(0, "DrawCallArgs", argsBuffer);
                 fixArgs.Dispatch(0, 1, 1, 1);
 
                 argsBuffer.GetData(args);
-
-                print(args[0]);
 
                 args[0] *= 2;
 
