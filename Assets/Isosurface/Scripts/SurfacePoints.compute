@@ -42,7 +42,7 @@ float3 GetSurfacePointQEF(Edge edges_on_surface[12], int num_edges_intersected, 
         // // simple avg
         // float3 edge_crossing = (edges_on_surface[i].end - edges_on_surface[i].start) / 2.0 + edges_on_surface[i].start;
         edge_intersections[i] = edge_crossing;
-        float3 normal = EstimateNormal(transformPoint(edge_crossing.zyx));
+        float3 normal = EstimateNormal(transformPoint(edge_crossing.xyz));
         qef_add(float4(normal, 0.0), float4(edge_crossing, 1.0), ATA, Atb, pointaccum, btb);
     }
     // weight center of cube
