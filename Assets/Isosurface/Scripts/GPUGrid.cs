@@ -80,6 +80,11 @@ namespace Isosurface
         [SerializeField]
         SurfacePointsFunc surfacePointsFunc = SurfacePointsFunc.Centroid;
 
+        enum RenderMode { Shaded, Wireframe }
+
+        [SerializeField]
+        RenderMode renderMode = RenderMode.Shaded;
+
         [SerializeField]
         bool showGrid = true;
         [SerializeField]
@@ -298,6 +303,24 @@ namespace Isosurface
                     tris[i] = i;
                 }
                 mesh.triangles = tris;
+
+                if (renderMode == RenderMode.Wireframe) 
+                {
+                    var indices = new int[verts3.Length / 3 * 6];
+                    for (int i = 0, j = 0; i < indices.Length; i+=6, j += 3)
+                    {
+                        indices[i] = j;
+                        indices[i+1] = j+1;
+
+                        indices[i+2] = j+1;
+                        indices[i+3] = j+2;
+
+                        indices[i+4] = j;
+                        indices[i+5] = j+2;
+                    }
+                    mesh.SetIndices(indices, MeshTopology.Lines, 0);
+                }
+                
 
                 // TODO: custom render shader (URP shader graph) that gets verts from buffer, use vert id, create variant of urp standard
                 // see info at bottom for vert id info?: https://docs.unity3d.com/Manual/SL-ShaderSemantics.html
