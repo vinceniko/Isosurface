@@ -47,7 +47,7 @@ float3 GetSurfacePointQEF(Edge edges_on_surface[12], int num_edges_intersected, 
     }
     // weight center of cube
     // float3 edge_crossing = pos + (strides[0]+strides[1]+strides[2]) / 2;
-    // float3 normal = EstimateNormal(mul(_ShapeToWorld, float4(transformToCenter(edge_crossing.zyx), 1)).xyz);
+    // float3 normal = EstimateNormal(transformPoint(edge_crossing.xyz));
     // qef_add(float4(normal, 0.0), float4(edge_crossing, 1.0), ATA, Atb, pointaccum, btb);
 
     float4 surface_point_ = float4(0.0, 0.0, 0.0, 1.0);
@@ -178,5 +178,5 @@ float3 SurfacePoints(uint3 id: SV_DispatchThreadID) {
 [numthreads(4, 4, 4)]
 void SurfacePointsKernel(uint3 id: SV_DispatchThreadID) {
     float3 pos = SurfacePoints(id);
-    _Normals[threeDToOneD(id)] = float4(EstimateNormal(mul(_ShapeToWorld, float4(pos, 1)).xyz), 1);
+    _Normals[threeDToOneD(id)] = float4(EstimateNormal(mul(_ShapeToWorld, float4(pos, 1)).zyx), 1);
 }
