@@ -12,11 +12,11 @@ Computational Geometry final project by Vincent Nikolayev and Conner Moore. We i
 
 ## Report
 
-The associated report is found at `./Report.pdf`. We discuss other Isosurface Extraction techniques such as Marching Cubes and improving performance with Octrees.
+The associated report is found [here](https://docs.google.com/document/d/1gRrFQ69Ng3mF5B550XXXuDtswovxLhK4cKRdbKfFYmY/edit?usp=sharing). We discuss other Isosurface Extraction techniques such as Marching Cubes and improving performance with Octrees.
 
 ## Presentation
 
-The slides used in our in-class presentation are found at `./presentation.pptx`. 
+The slides used in our in-class presentation are found [here](https://docs.google.com/presentation/d/14Gk8NlOuF4xucH_i8O3gszvqvE339LZGBSqDQ9dZmoo/edit?usp=sharing)
 
 ## Visualizations
 
